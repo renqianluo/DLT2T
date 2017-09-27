@@ -91,12 +91,13 @@ def model_fn(model,
   with tf.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
+        print('############## %s shape is' %k, v.get_shape())
         if k == "A":
-          lm_scores_A = v[:, -1]
-          v = v[:, :-1]
+          lm_scores_A = v[:, -1, :, :]
+          v = v[:, :-1, :, :]
         elif k == "B":
-          lm_scores_B = v[:, -1]
-          v = v[:, :-1]
+          lm_scores_B = v[:, -1, :, :]
+          v = v[:, :-1, :, :]
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
         nonpadding = tf.to_float(tf.not_equal(v, 0))
@@ -105,9 +106,9 @@ def model_fn(model,
           A_nonpadding_tokens = nonpadding_tokens
         elif k == "B":
           B_nonpadding_tokens = nonpadding_tokens
-        if k == "A_m":
+        elif k == "A_m":
           A_m_nonpadding_tokens = nonpadding_tokens
-        if k == "B_m":
+        elif k == "B_m":
           B_m_nonpadding_tokens = nonpadding_tokens
         tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
         tf.summary.scalar("%s_nonpadding_fraction" % k,
@@ -152,43 +153,67 @@ def model_fn(model,
         sharded_logits_B2A, losses_dict_B2A = model_class.eval_autoregressive(features)
     else: #TODO here
       # do DL for monolingual first
+      print("################## Training process#################")
       with tf.variable_scope("A2B"):
         features["inputs"] = features["A_m"]
-        y_m_hat = model_class.infer(
+        print("A2B, inference, inputs is",features["inputs"].get_shape())
+        model_output = model_class.infer(
           features,
           beam_size=decode_hp.beam_size,
           top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
           last_position_only=decode_hp.use_last_position_only,
           alpha=decode_hp.alpha,
           decode_length=decode_hp.extra_length)
-        features["B_hat"] = y_m_hat
+        if isinstance(model_output, dict):
+          outputs = model_output["outputs"]
+        else:
+          outputs = model_output
+        while outputs.get_shape().ndims < 4:
+          outputs = tf.expand_dims(outputs,axis=-1)
+        features["B_hat"] = outputs
       with tf.variable_scope("B2A"):
         features["inputs"] = features["B_m"]
-        x_m_hat = model_class.infer(
+        print("B2A, inference, inputs is",features["inputs"].get_shape())
+        model_output = model_class.infer(
           features,
           beam_size=decode_hp.beam_size,
           top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
           last_position_only=decode_hp.use_last_position_only,
           alpha=decode_hp.alpha,
           decode_length=decode_hp.extra_length)
-        features["A_hat"] = x_m_hat
-      #modify fetures here
+        if isinstance(model_output, dict):
+          outputs = model_output["outputs"]
+        else:
+          outputs = model_output
+        while outputs.get_shape().ndims < 4:
+          outputs = tf.expand_dims(outputs, axis=-1)
+        features["A_hat"] = outputs
+
       with tf.variable_scope("B2A"):
         features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
+        print("B2A, mono train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
+        tf.get_variable_scope().reuse_variables()
         sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
+
       with tf.variable_scope("A2B"):
         features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
+        print("A2B, mono train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
+        tf.get_variable_scope().reuse_variables()
         sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
       
       #modify feature here for DSL
       with tf.variable_scope("A2B"):
         features["inputs"], features["targets"] = features["A"], features["B"]
+        print("A2B, bi train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
+        tf.get_variable_scope().reuse_variables()
         sharded_logits_B, losses_dict_B = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
       with tf.variable_scope("B2A"):
+        print("B2A, bi train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
         features["inputs"], features["targets"] = features["B"], features["A"]
+        tf.get_variable_scope().reuse_variables()
         sharded_logits_A, losses_dict_A = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
       #TODO: Real lm score
@@ -286,7 +311,7 @@ def model_fn(model,
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
-    return [total_loss, [tf.concat(sharded_logits_A_m, 0), tf.concat(sharded_logits_B_m),
+    return [total_loss, [tf.concat(sharded_logits_A_m, 0), tf.concat(sharded_logits_B_m, 0),
             tf.concat(sharded_logits_A, 0), tf.concat(sharded_logits_B, 0)]]
 
   model_output = input_fn_builder.cond_on_index(

@@ -20,7 +20,7 @@ This binary perform training, evaluation, and inference using
 the Estimator API with tf.learn Experiment objects.
 
 To train your model, for example:
-  t2t-trainer \
+  dual-t2t-trainer \
       --data_dir ~/data \
       --problems=algorithmic_identity_binary40 \
       --model=transformer
