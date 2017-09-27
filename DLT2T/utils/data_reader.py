@@ -262,6 +262,7 @@ def input_pipeline(problem, data_file_pattern, capacity, mode, hparams,
     # reading, parsing, and preprocessing. Use Problem.dataset instead.
     #dataset = read_examples(problem, data_file_pattern, capacity, mode=mode)
     dataset = problem.dataset
+    print dataset
     dataset = dataset.map(
         lambda ex: _preprocess(ex, problem, data_file_pattern, hparams, mode),
         num_threads=num_threads)
