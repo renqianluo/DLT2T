@@ -1,4 +1,4 @@
-"""Install tensor2tensor."""
+"""Install DLT2T."""
 
 from setuptools import find_packages
 from setuptools import setup
@@ -20,11 +20,10 @@ setup(
         ],
     },
     scripts=[
-        'DLT2T/bin/t2t-trainer',
-        'DLT2T/bin/t2t-datagen',
-        'DLT2T/bin/t2t-decoder',
-        'DLT2T/bin/t2t-make-tf-configs',
-        'DLT2T/bin/daul-t2t-trainer',
+        'DLT2T/bin/dual-t2t-trainer',
+        'DLT2T/bin/dual-t2t-datagen',
+        'DLT2T/bin/dual-t2t-decoder',
+        'DLT2T/bin/dual-t2t-make-tf-configs',
     ],
     install_requires=[
         'bz2file',

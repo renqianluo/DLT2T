@@ -96,7 +96,7 @@ def model_fn(model,
           lm_scores_A = v[:, -1]
           v = v[:, :-1]
         elif k == "B":
-          lm_scores_B = v[;, -1]
+          lm_scores_B = v[:, -1]
           v = v[:, :-1]
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
