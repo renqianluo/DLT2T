@@ -34,7 +34,7 @@ import tensorflow as tf
 # End-of-sentence marker.
 EOS = text_encoder.EOS_ID
 
-@registry.registry('dual_learning_ende')
+@registry.register_problem
 class DualLearningEnde(problem.Text2TextProblem):
 
   @property
