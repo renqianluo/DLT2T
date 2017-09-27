@@ -95,7 +95,7 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
     the lines are integer lists converted from tokens in the file lines.
   '''
   eos_list = [] if eos is None else [eos]
-  if A_m is not None and B_m is not None:  
+  if A_m is None and B_m is None:  
     with tf.gfile.GFile(A, mode="r") as A_file:
       with tf.gfile.GFile(B, mode="r") as B_file:
         A, B = A_file.readline(), B_file.readline()
