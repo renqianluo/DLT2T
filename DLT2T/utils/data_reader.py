@@ -219,7 +219,7 @@ def read_examples(problem,
     data_fields, data_items_to_decoders = default_example_reading_spec(
         data_file_pattern)
   else:
-    data_fields, data_items_to_decoders = problem.examle_reading_spec()
+    data_fields, data_items_to_decoders = problem.example_reading_spec()
 
   if data_file_pattern is None:
     # Create placeholders for input, rather than reading data from disk.
