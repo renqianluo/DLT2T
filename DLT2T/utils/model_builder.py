@@ -42,7 +42,6 @@ from tensorflow.python.framework import dtypes
 
 
 def model_fn(model,
-             lm_model,
              features,
              mode,
              hparams,
@@ -501,7 +500,7 @@ def model_fn(model,
       train_op=train_op)
 
 
-def build_model_fn(model, lm_model, **kwargs): #TODO maybe start from here?
+def build_model_fn(model, **kwargs): #TODO maybe start from here?
   """Returns a function to build the model. See model_fn."""
 
   # Model function as expected by Estimator
@@ -523,7 +522,7 @@ def build_model_fn(model, lm_model, **kwargs): #TODO maybe start from here?
       features["targets"] = labels
     del labels
 
-    return model_fn(model, lm_model, features, mode, hparams, **kwargs)
+    return model_fn(model, features, mode, hparams, **kwargs)
 
   return wrapping_model_fn
 
