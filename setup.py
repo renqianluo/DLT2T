@@ -4,26 +4,27 @@ from setuptools import find_packages
 from setuptools import setup
 
 setup(
-    name='dualtensor2tensor',
+    name='DLT2T',
     version='1.2.2',
-    description='Tensor2Tensor',
-    author='Google Inc.',
-    author_email='no-reply@google.com',
-    url='http://github.com/tensorflow/tensor2tensor',
+    description='Dual Learning for Tensor2Tensor',
+    author='Renqian Luo',
+    author_email='lrqrichard@gmail.com',
+    url='http://github.com/renqianluo/DLT2T',
     license='Apache 2.0',
     packages=find_packages(),
     package_data={
-        'tensor2tensor.data_generators': ['test_data/*'],
-        'tensor2tensor.visualization': [
+        'DLT2T.data_generators': ['test_data/*'],
+        'DLT2T.visualization': [
             'attention.js',
             'TransformerVisualization.ipynb'
         ],
     },
     scripts=[
-        'tensor2tensor/bin/t2t-trainer',
-        'tensor2tensor/bin/t2t-datagen',
-        'tensor2tensor/bin/t2t-decoder',
-        'tensor2tensor/bin/t2t-make-tf-configs',
+        'DLT2T/bin/t2t-trainer',
+        'DLT2T/bin/t2t-datagen',
+        'DLT2T/bin/t2t-decoder',
+        'DLT2T/bin/t2t-make-tf-configs',
+        'DLT2T/bin/daul-t2t-trainer',
     ],
     install_requires=[
         'bz2file',
