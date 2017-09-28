@@ -469,8 +469,7 @@ def model_fn(model,
   # Add weight decay and noise.
   total_size, weight_decay_loss = 0, 0.0
   all_weights = {v.name: v for v in tf.trainable_variables()}
-  for v_name in sorted(list(all_weights)):
-    print("v_name: ", v_name)
+  for v_name in sorted(list(all_weights)): 
     v = all_weights[v_name]
     v_size = int(np.prod(np.array(v.shape.as_list())))
     total_size += v_size
@@ -571,6 +570,7 @@ def build_model_fn(model, **kwargs):
 
     if labels is not None:
       print("############# labels is not None")
+      print(labels)
       #features["targets"] = labels
       features["B"] = labels
     del labels
