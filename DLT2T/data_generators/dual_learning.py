@@ -77,6 +77,19 @@ class DualLearningEnde(problem.Text2TextProblem):
       return token_generator(os.path.join(datadir,datasets[0]), os.path.join(datadir,datasets[1]), 
           token_vocab=symbolizer_vocab, eos=EOS)
 
+  def preprocess_examples(self, examples, mode, hparams):
+    del mode
+    if hparams.max_input_seq_length > 0:
+      examples["A"] = examples["A"][:hparams.max_input_seq_length]
+      examples["A_m"] = examples["A_m"][:hparams.max_input_seq_length]
+    if hparams.max_target_seq_length > 0:
+      examples["B"] = examples["B"][:hparams.max_target_seq_length]
+      examples["B_m"] = examples["B_m"][:hparams.max_target_seq_length]
+    if hparams.prepend_mode != "none":
+      examples["targets"] = tf.concat(
+        [examples["inputs"], [0], examples["targets"]], 0)
+    return examples
+
   def example_reading_spec(self):
     data_fields = {
         "A": tf.VarLenFeature(tf.int64),
@@ -94,6 +107,7 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
     A dictionary {"inputs": source-line, "targets": target-line} where
     the lines are integer lists converted from tokens in the file lines.
   '''
+  print("############# Token_generator is called ############")
   eos_list = [] if eos is None else [eos]
   if A_m is None and B_m is None:  
     with tf.gfile.GFile(A, mode="r") as A_file:
@@ -119,6 +133,10 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
               B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [float(B.strip()[score_B:])]
               A_m_ints = token_vocab.encode(A_m.strip()[:score_A_m]) + eos_list + [float(A_m.strip()[score_A_m:])*1000000+1000000]
               B_m_ints = token_vocab.encode(B_m.strip()[:score_B_m]) + eos_list + [float(B_m.strip()[score_B_m:])*1000000+1000000]
+              print("A", A_ints)
+              ptint("B", B_ints)
+              print("A_m", A_m_ints)
+              print("B_m", B_m_ints)
               yield {"A": A_ints, "B": B_ints, "A_m":A_m_ints, "B_m":B_m_ints}
               A, B, A_m, B_m = A_file.readline(), B_file.readline(), A_m_file.readline(), B_m_file.readline()
     

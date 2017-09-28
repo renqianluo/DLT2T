@@ -470,6 +470,7 @@ def model_fn(model,
   total_size, weight_decay_loss = 0, 0.0
   all_weights = {v.name: v for v in tf.trainable_variables()}
   for v_name in sorted(list(all_weights)):
+    print("v_name: ", v_name)
     v = all_weights[v_name]
     v_size = int(np.prod(np.array(v.shape.as_list())))
     total_size += v_size
@@ -550,7 +551,7 @@ def model_fn(model,
       train_op=train_op)
 
 
-def build_model_fn(model, **kwargs): #TODO maybe start from here?
+def build_model_fn(model, **kwargs):
   """Returns a function to build the model. See model_fn."""
 
   # Model function as expected by Estimator
@@ -569,7 +570,9 @@ def build_model_fn(model, **kwargs): #TODO maybe start from here?
     del params
 
     if labels is not None:
-      features["targets"] = labels
+      print("############# labels is not None")
+      #features["targets"] = labels
+      features["B"] = labels
     del labels
 
     return model_fn(model, features, mode, hparams, **kwargs)
