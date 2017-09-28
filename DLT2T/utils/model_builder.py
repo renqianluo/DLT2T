@@ -220,9 +220,9 @@ def model_fn(model,
       lm_score_A = tf.constant(0.0)
       lm_score_B = tf.constant(0.0)
 
-    with tf.variable_scope("losses_avg"):
-      total_loss, ops = 0.0, []
-      with tf.variable_scope("DL_A2B"):
+    total_loss, ops = 0.0, []
+    with tf.variable_scope("DL_A2B"):
+      with tf.variable_scope("losses_avg"):
         total_loss_DL_A2B = 0.0
         for loss_key, loss_value in six.iteritems(losses_dict_A_m):
           loss_name = "problem_%d/%s_loss" % (n, loss_key)
@@ -241,7 +241,13 @@ def model_fn(model,
               "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
         ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_DL_A2B * 0.1))
-      with tf.variable_scope("DL_B2A"):
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+        ops.append(problem_steps.assign_add(1))
+   
+    with tf.variable_scope("DL_B2A"):
+      with tf.variable_scope("losses_avg"):
         total_loss_DL_B2A = 0.0
         for loss_key, loss_value in six.iteritems(losses_dict_B_m):
           loss_name = "problem_%d/%s_loss" % (n, loss_key)
@@ -260,7 +266,12 @@ def model_fn(model,
               "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
         ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_DL_B2A * 0.1))
-      with tf.variable_scope("DSL_A2B"):
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+      
+    with tf.variable_scope("DSL_A2B"):
+      with tf.variable_scope("losses_avg"):
         total_loss_DSL_A2B = 0.0
         for loss_key, loss_value in six.iteritems(losses_dict_B):
           loss_name = "problem_%d/%s_loss" % (n, loss_key)
@@ -279,7 +290,12 @@ def model_fn(model,
               "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
         ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_DSL_A2B * 0.1))
-      with tf.variable_scope("DSL_B2A"):
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+      
+    with tf.variable_scope("DSL_B2A"):
+      with tf.variable_scope("losses_avg"):
         total_loss_DSL_B2A = 0.0
         for loss_key, loss_value in six.iteritems(losses_dict_A):
           loss_name = "problem_%d/%s_loss" % (n, loss_key)
@@ -298,16 +314,16 @@ def model_fn(model,
               "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
         ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_DSL_B2A * 0.1))
-        #TODO
-      lm_decay = 1.0
-      trade_off = 0.5
-      total_loss = total_loss_DL_A2B + total_loss_DL_B2A + total_loss_DSL_A2B + total_loss_DSL_B2A + \
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+      
+
+    lm_decay = 1.0
+    trade_off = 0.5
+    total_loss = total_loss_DL_A2B + total_loss_DL_B2A + total_loss_DSL_A2B + total_loss_DSL_B2A + \
               trade_off * (lm_decay * lm_score_A + total_loss_DSL_A2B - lm_decay * lm_score_B - total_loss_DSL_B2A)**2
 
-    with tf.variable_scope("train_stats"):  # Count steps for this problem.
-      problem_steps = tf.get_variable(
-          "problem_%d_steps" % n, initializer=0, trainable=False)
-      ops.append(problem_steps.assign_add(1))
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
@@ -374,8 +390,8 @@ def model_fn(model,
   with tf.name_scope("training_stats"):
     tf.summary.scalar("learning_rate", learning_rate)
     for n in xrange(len(hparams.problems)):
-      names_and_vars = []
-      with tf.variable_scope("DL_A2B"):
+      with tf.variable_scope("DL_A2B", reuse=True):
+        names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
           total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
           names_and_vars.append(("total_loss", total_loss_var))
@@ -392,7 +408,9 @@ def model_fn(model,
         tf.summary.scalar("problem_%d_frequency" % n,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
-      with tf.variable_scope("DL_B2A"):
+      
+      with tf.variable_scope("DL_B2A", reuse=True):
+        names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
           total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
           names_and_vars.append(("total_loss", total_loss_var))
@@ -409,7 +427,9 @@ def model_fn(model,
         tf.summary.scalar("problem_%d_frequency" % n,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
-      with tf.variable_scope("DSL_A2B"):
+
+      with tf.variable_scope("DSL_A2B", reuse=True):
+        names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
           total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
           names_and_vars.append(("total_loss", total_loss_var))
@@ -426,7 +446,9 @@ def model_fn(model,
         tf.summary.scalar("problem_%d_frequency" % n,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
-      with tf.variable_scope("DSL_B2A"):
+      
+      with tf.variable_scope("DSL_B2A", reuse=True):
+        names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
           total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
           names_and_vars.append(("total_loss", total_loss_var))
@@ -479,6 +501,9 @@ def model_fn(model,
       shape=[],
       initializer=tf.ones_initializer(),
       trainable=False)
+  targets_nonpadding_tokens = tf.maximum(A_nonpadding_tokens, B_nonpadding_tokens)
+  targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_m_nonpadding_tokens)
+  targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_m_nonpadding_tokens)
   max_nonpadding = tf.maximum(max_nonpadding_var, targets_nonpadding_tokens)
   with tf.control_dependencies([tf.assign(max_nonpadding_var, max_nonpadding)]):
     small_batch_multiplier = targets_nonpadding_tokens / max_nonpadding
