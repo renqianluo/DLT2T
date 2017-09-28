@@ -111,13 +111,6 @@ def build_input_fn(mode,
                   "problem_%d/total_loss" % problem_idx,
                   initializer=100.0,
                   trainable=False))
-      with tf.variable_scope("DL_A2B"):
-        with tf.variable_scope("losses_avg"):
-          loss_moving_avgs.append(
-              tf.get_variable(
-                  "problem_%d/total_loss" % problem_idx,
-                  initializer=100.0,
-                  trainable=False))
       with tf.variable_scope("DL_B2A"):
         with tf.variable_scope("losses_avg"):
           loss_moving_avgs.append(
