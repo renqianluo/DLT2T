@@ -91,15 +91,16 @@ def model_fn(model,
   with tf.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
-        print('############## %s shape is' %k, v.get_shape())
         if k == "A":
-          lm_scores_A = v[:, -1, :, :]
+          score_extractor = tf.constant(1000000.0, shape=[])
+          lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
           v = v[:, :-1, :, :]
         elif k == "B":
-          lm_scores_B = v[:, -1, :, :]
+          score_extractor = tf.constant(1000000.0, shape=[])
+          lm_scores_B = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
           v = v[:, :-1, :, :]
-        tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
-        tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
+        #tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
+        #tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
         nonpadding = tf.to_float(tf.not_equal(v, 0))
         nonpadding_tokens = tf.reduce_sum(nonpadding)
         if k == "A":
@@ -110,9 +111,9 @@ def model_fn(model,
           A_m_nonpadding_tokens = nonpadding_tokens
         elif k == "B_m":
           B_m_nonpadding_tokens = nonpadding_tokens
-        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
+        #tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
+        #tf.summary.scalar("%s_nonpadding_fraction" % k,
+        #E                  tf.reduce_mean(nonpadding))
 
   # Get multi-problem logits and loss based on features["problem_choice"].
   loss_variable_names = []
@@ -153,10 +154,9 @@ def model_fn(model,
         sharded_logits_B2A, losses_dict_B2A = model_class.eval_autoregressive(features)
     else: #TODO here
       # do DL for monolingual first
-      print("################## Training process#################")
+
       with tf.variable_scope("A2B"):
         features["inputs"] = features["A_m"]
-        print("A2B, inference, inputs is",features["inputs"].get_shape())
         model_output = model_class.infer(
           features,
           beam_size=decode_hp.beam_size,
@@ -168,12 +168,12 @@ def model_fn(model,
           outputs = model_output["outputs"]
         else:
           outputs = model_output
+        #outputs = tf.concat(sharded_outputs, axis=0)
         while outputs.get_shape().ndims < 4:
           outputs = tf.expand_dims(outputs,axis=-1)
         features["B_hat"] = outputs
       with tf.variable_scope("B2A"):
         features["inputs"] = features["B_m"]
-        print("B2A, inference, inputs is",features["inputs"].get_shape())
         model_output = model_class.infer(
           features,
           beam_size=decode_hp.beam_size,
@@ -185,35 +185,28 @@ def model_fn(model,
           outputs = model_output["outputs"]
         else:
           outputs = model_output
+        #outputs = tf.concat(sharded_outputs, axis=0)
         while outputs.get_shape().ndims < 4:
           outputs = tf.expand_dims(outputs, axis=-1)
         features["A_hat"] = outputs
-
-      with tf.variable_scope("B2A"):
+      
+      with tf.variable_scope("B2A", reuse=True):
         features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
-        print("B2A, mono train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
-        tf.get_variable_scope().reuse_variables()
         sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
 
-      with tf.variable_scope("A2B"):
+      with tf.variable_scope("A2B", reuse=True):
         features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
-        print("A2B, mono train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
-        tf.get_variable_scope().reuse_variables()
         sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
-      
+
       #modify feature here for DSL
-      with tf.variable_scope("A2B"):
+      with tf.variable_scope("A2B", reuse=True):
         features["inputs"], features["targets"] = features["A"], features["B"]
-        print("A2B, bi train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
-        tf.get_variable_scope().reuse_variables()
         sharded_logits_B, losses_dict_B = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
-      with tf.variable_scope("B2A"):
-        print("B2A, bi train, inputs and targets shape is",features["inputs"].get_shape(), features["targets"].get_shape())
+      with tf.variable_scope("B2A", reuse=True):
         features["inputs"], features["targets"] = features["B"], features["A"]
-        tf.get_variable_scope().reuse_variables()
         sharded_logits_A, losses_dict_A = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
       #TODO: Real lm score
@@ -221,6 +214,7 @@ def model_fn(model,
       lm_score_B = tf.constant(0.0)
 
     total_loss, ops = 0.0, []
+    
     with tf.variable_scope("DL_A2B"):
       with tf.variable_scope("losses_avg"):
         total_loss_DL_A2B = 0.0
@@ -269,7 +263,7 @@ def model_fn(model,
       with tf.variable_scope("train_stats"):  # Count steps for this problem.
         problem_steps = tf.get_variable(
             "problem_%d_steps" % n, initializer=0, trainable=False)
-      
+     
     with tf.variable_scope("DSL_A2B"):
       with tf.variable_scope("losses_avg"):
         total_loss_DSL_A2B = 0.0
@@ -280,7 +274,7 @@ def model_fn(model,
           loss_variable_names.append(loss_name)
           ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
-          total_loss_DL_A2B += loss_value
+          total_loss_DSL_A2B += loss_value
         try:  # Total loss avg might be reused or not, we try both.
           with tf.variable_scope(tf.get_variable_scope(), reuse=True):
           # Total loss was already constructed on input.
@@ -319,16 +313,19 @@ def model_fn(model,
             "problem_%d_steps" % n, initializer=0, trainable=False)
       
 
-    lm_decay = 1.0
-    trade_off = 0.5
+    lm_decay = 0.3
+    trade_off = 0.01
     total_loss = total_loss_DL_A2B + total_loss_DL_B2A + total_loss_DSL_A2B + total_loss_DSL_B2A + \
               trade_off * (lm_decay * lm_score_A + total_loss_DSL_A2B - lm_decay * lm_score_B - total_loss_DSL_B2A)**2
+    #total_loss = total_loss_DSL_A2B + total_loss_DSL_B2A + trade_off * (lm_decay * lm_score_A + total_loss_DSL_A2B - lm_decay * lm_score_B - total_loss_DSL_B2A) ** 2
 
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
     return [total_loss, [tf.concat(sharded_logits_A_m, 0), tf.concat(sharded_logits_B_m, 0),
             tf.concat(sharded_logits_A, 0), tf.concat(sharded_logits_B, 0)]]
+    #return [total_loss, [tf.concat(sharded_logits_A, 0), tf.concat(sharded_logits_B, 0)]]
+   
 
   model_output = input_fn_builder.cond_on_index(
       nth_model,
@@ -359,6 +356,7 @@ def model_fn(model,
 
   total_loss, logits = model_output
   logits_A_m, logits_B_m, logits_A, logits_B = logits
+  #logits_A, logits_B = logits
   #TODO: modify EVAL
   if mode == tf.estimator.ModeKeys.EVAL:
     eval_metrics_fns = metrics.create_evaluation_metrics(
@@ -388,8 +386,9 @@ def model_fn(model,
 
   # Some training statistics.
   with tf.name_scope("training_stats"):
-    tf.summary.scalar("learning_rate", learning_rate)
+    #tf.summary.scalar("learning_rate", learning_rate)
     for n in xrange(len(hparams.problems)):
+      
       with tf.variable_scope("DL_A2B", reuse=True):
         names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
@@ -401,13 +400,13 @@ def model_fn(model,
               loss_var = tf.get_variable(loss_name)
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
-        for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
+        #for (loss_name, loss_var) in names_and_vars:
+          #tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("problem_%d_frequency" % n,
-                          tf.to_float(nth_steps) /
-                          (tf.to_float(global_step) + 1.0))
+        #tf.summary.scalar("problem_%d_frequency" % n,
+        #                  tf.to_float(nth_steps) /
+        #                  (tf.to_float(global_step) + 1.0))
       
       with tf.variable_scope("DL_B2A", reuse=True):
         names_and_vars = []
@@ -420,14 +419,14 @@ def model_fn(model,
               loss_var = tf.get_variable(loss_name)
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
-        for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
+        #for (loss_name, loss_var) in names_and_vars:
+          #tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("problem_%d_frequency" % n,
-                          tf.to_float(nth_steps) /
-                          (tf.to_float(global_step) + 1.0))
-
+        #tf.summary.scalar("problem_%d_frequency" % n,
+        #                  tf.to_float(nth_steps) /
+        #                  (tf.to_float(global_step) + 1.0))
+      
       with tf.variable_scope("DSL_A2B", reuse=True):
         names_and_vars = []
         with tf.variable_scope("losses_avg", reuse=True):
@@ -439,13 +438,13 @@ def model_fn(model,
               loss_var = tf.get_variable(loss_name)
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
-        for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
+        #for (loss_name, loss_var) in names_and_vars:
+          #tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("problem_%d_frequency" % n,
-                          tf.to_float(nth_steps) /
-                          (tf.to_float(global_step) + 1.0))
+        #tf.summary.scalar("problem_%d_frequency" % n,
+        #                  tf.to_float(nth_steps) /
+        #                  (tf.to_float(global_step) + 1.0))
       
       with tf.variable_scope("DSL_B2A", reuse=True):
         names_and_vars = []
@@ -458,13 +457,13 @@ def model_fn(model,
               loss_var = tf.get_variable(loss_name)
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
-        for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
+        #for (loss_name, loss_var) in names_and_vars:
+          #tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("problem_%d_frequency" % n,
-                          tf.to_float(nth_steps) /
-                          (tf.to_float(global_step) + 1.0))
+        #tf.summary.scalar("problem_%d_frequency" % n,
+        #                  tf.to_float(nth_steps) /
+        #                  (tf.to_float(global_step) + 1.0))
 
   # Add weight decay and noise.
   total_size, weight_decay_loss = 0, 0.0
@@ -507,7 +506,7 @@ def model_fn(model,
   max_nonpadding = tf.maximum(max_nonpadding_var, targets_nonpadding_tokens)
   with tf.control_dependencies([tf.assign(max_nonpadding_var, max_nonpadding)]):
     small_batch_multiplier = targets_nonpadding_tokens / max_nonpadding
-  tf.summary.scalar("small_batch_multiplier", small_batch_multiplier)
+  #tf.summary.scalar("small_batch_multiplier", small_batch_multiplier)
   total_loss *= small_batch_multiplier
 
   # Log variable sizes
@@ -569,7 +568,6 @@ def build_model_fn(model, **kwargs):
     del params
 
     if labels is not None:
-      print("############# labels is not None")
       print(labels)
       #features["targets"] = labels
       features["B"] = labels

@@ -873,8 +873,8 @@ def simple_attention(target, source, bias=None):
     if bias is not None:
       attention += tf.expand_dims(tf.squeeze(bias, axis=[2, 3]), axis=1)
     attention = tf.nn.softmax(attention)
-    if not tf.get_variable_scope().reuse:
-      tf.summary.image("attention", tf.expand_dims(attention, 3), max_outputs=5)
+    #if not tf.get_variable_scope().reuse:
+      #tf.summary.image("attention", tf.expand_dims(attention, 3), max_outputs=5)
     attended = tf.matmul(attention, source)
     return tf.reshape(attended, target_shape)
 
@@ -1177,7 +1177,7 @@ def attention_1d_v0(source,
           batch, target_length, source_length, 3, (num_heads + extra_heads) // 3
       ])
       image = tf.reduce_max(image, 4)
-      tf.summary.image("local_attention", image, max_outputs=1)
+      #tf.summary.image("local_attention", image, max_outputs=1)
     # output: [batch, num_heads, target_length, size_per_head]
     output = tf.matmul(attention, source_attention)
     output = tf.transpose(output, [0, 2, 1, 3])
@@ -1229,10 +1229,10 @@ def conv_hidden_relu(inputs,
         **kwargs)
     if dropout != 0.0:
       h = tf.nn.dropout(h, 1.0 - dropout)
-    if not tf.get_variable_scope().reuse:
-      tf.summary.histogram("hidden_density_logit",
-                           relu_density_logit(
-                               h, list(range(inputs.shape.ndims - 1))))
+    #if not tf.get_variable_scope().reuse:
+      #tf.summary.histogram("hidden_density_logit",
+    #                       relu_density_logit(
+    #                           h, list(range(inputs.shape.ndims - 1))))
     conv_f2 = conv if second_kernel_size == (1, 1) else separable_conv
     ret = conv_f2(h, output_size, second_kernel_size, name="conv2", **kwargs)
     if is_3d:

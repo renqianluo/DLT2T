@@ -104,6 +104,7 @@ def beam_search(symbols_to_logits_fn,
                 decode_length,
                 vocab_size,
                 alpha,
+                #num_datashards,
                 eos_id=EOS_ID):
   """Beam search with length penalties.
 

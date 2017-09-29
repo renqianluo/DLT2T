@@ -104,11 +104,8 @@ flags.DEFINE_string("ps_job", "/job:ps", "name of ps job")
 flags.DEFINE_integer("ps_replicas", 0, "How many ps replicas.")
 
 # Decoding flags
-flags.DEFINE_string(
-    "decode_hparams", "",
-    "Comma-separated list of name=value pairs to control decode behavior. "
-    "See decoding.decode_hparams for defaults.")
-
+flags.DEFINE_string("decode_hparams", "", "Comma-separated list of name=value pairs to control decode behavior."
+                  "See decoding.decode_hparams for defaults.")
 
 def make_experiment_fn(data_dir, model_name, train_steps, eval_steps):
   """Returns experiment_fn for learn_runner. Wraps create_experiment."""

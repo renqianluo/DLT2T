@@ -134,7 +134,6 @@ def build_input_fn(mode,
                   trainable=False))
 
     if fixed_problem is None:
-      print("################# fixed_problem is None#########")
       problem_choice = _problem_choice(hparams.problem_choice, mode,
                                        problem_count, loss_moving_avgs,
                                        worker_replicas, worker_id)
@@ -144,11 +143,9 @@ def build_input_fn(mode,
           lambda problem_idx: problem_batches[problem_idx], problem_choice,
           problem_count - 1)
     else:
-      print("################# fixed_problem is Not None#########")
       problem_choice = tf.constant(fixed_problem)
       # Take the only constructed batch, which is the fixed_problem.
       feature_map = problem_batches[0]
-    print("################ problem choice is ", problem_choice)
     feature_map["problem_choice"] = problem_choice
 
     # Set shapes so the ranks are clear.
@@ -185,7 +182,6 @@ def build_input_fn(mode,
 def _problem_choice(choice_mode, mode, problem_count, loss_moving_avgs,
                     worker_replicas, worker_id):
   """Return idx of problem based on choice_mode and mode."""
-  print("############### choice_mode is ", choice_mode)
   if choice_mode == "uniform" or mode != tf.estimator.ModeKeys.TRAIN:
     problem_choice = tf.random_uniform([], maxval=problem_count, dtype=tf.int32)
   elif choice_mode == "adaptive":

@@ -66,18 +66,19 @@ class DualLearningEnde(problem.Text2TextProblem):
     return True
 
   def generator(self, data_dir, tmp_dir, train):
-    #symbolizer_vocab = generator_utils.get_or_generate_vocab(
-    #    data_dir, tmp_dir, self.vocab_file, self.targeted_vocab_size)
-    symbolizer_vocab = text_encoder.SubwordTextEncoder(os.path.join(data_dir, vocab_filename))
-    datasets = _ENDE_TRAIN_DATASETS if train else _ENDE_TEST_DATASETS
+    symbolizer_vocab = generator_utils.get_or_generate_vocab(
+        data_dir, tmp_dir, self.vocab_file, self.targeted_vocab_size)
+    #symbolizer_vocab = text_encoder.SubwordTextEncoder(os.path.join(data_dir, self.vocab_file))
+    datasets = _DUAL_ENDE_TRAIN_DATASETS if train else _DUAL_ENDE_TEST_DATASETS
     if train:
-      return token_generator(os.path.join(datadir,datasets[0]), os.path.join(datadir,datasets[1]), 
-          os.path.join(datadir,datasets[2]), os.path.join(datadir,datasets[3]), symbolizer_vocab, EOS)
+      return token_generator(os.path.join(data_dir,datasets[0]), os.path.join(data_dir,datasets[1]), 
+          os.path.join(data_dir,datasets[2]), os.path.join(data_dir,datasets[3]), symbolizer_vocab, EOS)
     else:
-      return token_generator(os.path.join(datadir,datasets[0]), os.path.join(datadir,datasets[1]), 
+      return token_generator(os.path.join(data_dir,datasets[0]), os.path.join(data_dir,datasets[1]), 
           token_vocab=symbolizer_vocab, eos=EOS)
 
   def preprocess_examples(self, examples, mode, hparams):
+    print("############################# preprocess_examples in dual_learning.py")
     del mode
     if hparams.max_input_seq_length > 0:
       examples["A"] = examples["A"][:hparams.max_input_seq_length]
@@ -109,9 +110,9 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
   '''
   print("############# Token_generator is called ############")
   eos_list = [] if eos is None else [eos]
-  if A_m is None and B_m is None:  
-    with tf.gfile.GFile(A, mode="r") as A_file:
-      with tf.gfile.GFile(B, mode="r") as B_file:
+  if A_m_path is None and B_m_path is None:  
+    with tf.gfile.GFile(A_path, mode="r") as A_file:
+      with tf.gfile.GFile(B_path, mode="r") as B_file:
         A, B = A_file.readline(), B_file.readline()
         while A and B:
           A_ints = token_vocab.encode(A.strip()) + eos_list
@@ -127,16 +128,10 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
             while A and B and A_m and B_m:
               score_A = A.strip().rfind(' ')
               score_B = B.strip().rfind(' ')
-              score_A_m = A_m.strip().rfind(' ')
-              score_B_m = A_m.strip().rfind(' ')
-              A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [float(A.strip()[score_A:])]
-              B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [float(B.strip()[score_B:])]
-              A_m_ints = token_vocab.encode(A_m.strip()[:score_A_m]) + eos_list + [float(A_m.strip()[score_A_m:])*1000000+1000000]
-              B_m_ints = token_vocab.encode(B_m.strip()[:score_B_m]) + eos_list + [float(B_m.strip()[score_B_m:])*1000000+1000000]
-              print("A", A_ints)
-              ptint("B", B_ints)
-              print("A_m", A_m_ints)
-              print("B_m", B_m_ints)
+              A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
+              B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
+              A_m_ints = token_vocab.encode(A_m.strip()) + eos_list
+              B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
               yield {"A": A_ints, "B": B_ints, "A_m":A_m_ints, "B_m":B_m_ints}
               A, B, A_m, B_m = A_file.readline(), B_file.readline(), A_m_file.readline(), B_m_file.readline()
     
@@ -149,7 +144,7 @@ _DUAL_ENDE_TRAIN_DATASETS = [
   'dual_de'
 ]
 
-_DUAL_ENDE_TRAIN_DATASETS = [
+_DUAL_ENDE_TEST_DATASETS = [
   'dual_ende.en',
   'dual_ende.de',
 ]
