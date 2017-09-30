@@ -157,13 +157,14 @@ def model_fn(model,
 
       with tf.variable_scope("A2B"):
         features["inputs"] = features["A_m"]
+        #with tf.device('/cpu:0'):
         model_output = model_class.infer(
-          features,
-          beam_size=decode_hp.beam_size,
-          top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
-          last_position_only=decode_hp.use_last_position_only,
-          alpha=decode_hp.alpha,
-          decode_length=decode_hp.extra_length)
+            features,
+            beam_size=decode_hp.beam_size,
+            top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
+            last_position_only=decode_hp.use_last_position_only,
+            alpha=decode_hp.alpha,
+            decode_length=decode_hp.extra_length)
         if isinstance(model_output, dict):
           outputs = model_output["outputs"]
         else:
@@ -174,13 +175,14 @@ def model_fn(model,
         features["B_hat"] = outputs
       with tf.variable_scope("B2A"):
         features["inputs"] = features["B_m"]
+        #with tf.device('/cpu:0'):
         model_output = model_class.infer(
-          features,
-          beam_size=decode_hp.beam_size,
-          top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
-          last_position_only=decode_hp.use_last_position_only,
-          alpha=decode_hp.alpha,
-          decode_length=decode_hp.extra_length)
+            features,
+            beam_size=decode_hp.beam_size,
+            top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
+            last_position_only=decode_hp.use_last_position_only,
+            alpha=decode_hp.alpha,
+            decode_length=decode_hp.extra_length)
         if isinstance(model_output, dict):
           outputs = model_output["outputs"]
         else:

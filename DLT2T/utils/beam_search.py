@@ -104,7 +104,7 @@ def beam_search(symbols_to_logits_fn,
                 decode_length,
                 vocab_size,
                 alpha,
-                #num_datashards,
+                #shard_id=0,
                 eos_id=EOS_ID):
   """Beam search with length penalties.
 
@@ -239,7 +239,7 @@ def beam_search(symbols_to_logits_fn,
     flat_ids = tf.reshape(alive_seq, [batch_size * beam_size, -1])
 
     # (batch_size * beam_size, decoded_length)
-    flat_logits = symbols_to_logits_fn(flat_ids)
+    flat_logits = symbols_to_logits_fn(flat_ids) #shard_id)
     logits = tf.reshape(flat_logits, (batch_size, beam_size, -1))
 
     # Convert logits to normalized log probs

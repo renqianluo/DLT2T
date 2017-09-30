@@ -206,8 +206,7 @@ class T2TModel(object):
 
       #sharded_samples, _, _ = self._greddy_infer(features, decode_length, last_postition_only)
  
-      samples, _, _ = self._greedy_infer(features, decode_length,
-                                         last_position_only)
+      samples, _, _ = self._greedy_infer(features, decode_length, last_position_only)
     else:
       tf.logging.info("Beam Decoding with beam size %d" % beam_size)
       
@@ -240,14 +239,16 @@ class T2TModel(object):
 
       features["targets"] = ids
       self._coverage = None
+      #if shard_id != 0:
+      #  tf.get_variable_scope().reuse_variables()
       sharded_logits, _ = self.model_fn(
           features, False, last_position_only=last_position_only)
       # now self._coverage is a coverage tensor for the first datashard.
       # it has shape [batch_size] and contains floats between 0 and
       # source_length.
       
-      #sharded_logits = tf.Print(sharded_logits, [tf.shape(sharded_logits)])
       #logits = sharded_logits[shard_id]  # Assuming we have one shard.
+      sharded_logits[0]=tf.Print(sharded_logits[0],[tf.shape(sharded_logits[0])])
       logits = tf.concat(sharded_logits, axis=0)
 
       if last_position_only:
@@ -273,19 +274,29 @@ class T2TModel(object):
     vocab_size = target_modality.top_dimensionality
     # Setting decode length to input length + decode_length
     decode_length = tf.shape(features["inputs"])[1] + tf.constant(decode_length)
-    #for i in xrange(self._num_datashards):
-    #ids, scores = beam_search.beam_search(symbols_to_logits_fn, initial_ids,
-    #                                      beam_size, decode_length, vocab_size,
-    #                                      alpha)
-    sharded_ids, sharded_scores = self._data_parallelism( beam_search.beam_search,symbols_to_logits_fn, initial_ids,
+    '''
+    ids, scores = [], []
+    for i in xrange(self._num_datashards):
+      if i != 0:
+        tf.get_variable_scope().reuse_variables()
+      ids_i, scores_i = beam_search.beam_search(symbols_to_logits_fn, initial_ids,
+                                          beam_size, decode_length, vocab_size,
+                                          alpha, shard_id=i)
+      ids.append(ids_i)
+      scores.append(scores_i)
+    ids = tf.concat(ids, axis=0)
+    scores = tf.concat(scores, axis=0)
+    '''
+    '''
+    sharded_ids, sharded_scores = beam_search.beam_search(symbols_to_logits_fn, initial_ids,
                                           beam_size, decode_length, vocab_size,
                                           alpha)
-    ids = tf.concat(sharded_ids, axis=0)
-    scores = tf.concat(sharded_scores, axis=0)
-      #ids.append(ids_i)
-      #scores.append(scores_i)
-    #ids = tf.concat(ids, axis=0)
-    #scores = tf.concat(scores, axis=0)
+    ids = tf.concat(ids, axis=0)
+    scores = tf.concat(scores, axis=0)
+    '''
+    ids, scores = beam_search.beam_search(symbols_to_logits_fn, initial_ids,
+                                          beam_size, decode_length, vocab_size,
+                                          alpha)
 
     # Set inputs back to the unexpanded inputs to not to confuse the Estimator!
     features["inputs"] = inputs_old
@@ -345,7 +356,9 @@ class T2TModel(object):
       samples.set_shape([None, None, None, 1])
 
       # Assuming we have one shard for logits.
-      logits = tf.concat([recent_logits, logits[0][:, -1:]], 1)
+      #logits = tf.concat([recent_logits, logits[0][:, -1:]], 1)
+      logits = tf.concat(logits, 0)
+      logits = tf.concat([recent_logits, logits[:,-1:]], 1)
       loss = sum([l for l in losses.values() if l is not None])
       return samples, logits, loss
 
