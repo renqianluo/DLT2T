@@ -200,7 +200,9 @@ def default_example_reading_spec(data_file_pattern):
         "A": tf.VarLenFeature(tf.int64),
         "B": tf.VarLenFeature(tf.int64),
         "A_m": tf.VarLenFeature(tf.int64),
-        "B_m": tf.VarLenFeature(tf.int64)
+        "B_m": tf.VarLenFeature(tf.int64),
+        "A_hat": tf.VarLenFeature(tf.int64),
+        "B_hat": tf.VarLenFeature(tf.int64)
     }
   else:
     data_fields = {

@@ -71,21 +71,45 @@ class DualLearningEnde(problem.Text2TextProblem):
     #symbolizer_vocab = text_encoder.SubwordTextEncoder(os.path.join(data_dir, self.vocab_file))
     datasets = _DUAL_ENDE_TRAIN_DATASETS if train else _DUAL_ENDE_TEST_DATASETS
     if train:
-      return token_generator(os.path.join(data_dir,datasets[0]), os.path.join(data_dir,datasets[1]), 
-          os.path.join(data_dir,datasets[2]), os.path.join(data_dir,datasets[3]), symbolizer_vocab, EOS)
+      return token_generator(
+        train = train,
+        A_path = os.path.join(data_dir,datasets[0]),
+        B_path = os.path.join(data_dir,datasets[1]),
+        A_m_path = os.path.join(data_dir,datasets[2]),
+        B_m_path = os.path.join(data_dir,datasets[3]),
+        A_hat_path = os.path.join(data_dir,datasets[4]),
+        B_hat_path = os.path.join(data_dir,datasets[5]),
+        token_vocab = symbolizer_vocab, 
+        eos = EOS)
     else:
-      return token_generator(os.path.join(data_dir,datasets[0]), os.path.join(data_dir,datasets[1]), 
-          token_vocab=symbolizer_vocab, eos=EOS)
+      return token_generator(
+        train = train,
+        A_path = os.path.join(data_dir,datasets[0]),
+        B_path = os.path.join(data_dir,datasets[1]),
+        token_vocab = symbolizer_vocab,
+        eos=EOS)
 
   def preprocess_examples(self, examples, mode, hparams):
-    print("############################# preprocess_examples in dual_learning.py")
     del mode
+    max_seq_length = min(max(hparams.max_input_seq_length,0),max(hparams.max_target_seq_length,0))
+    '''
     if hparams.max_input_seq_length > 0:
-      examples["A"] = examples["A"][:hparams.max_input_seq_length]
-      examples["A_m"] = examples["A_m"][:hparams.max_input_seq_length]
-    if hparams.max_target_seq_length > 0:
-      examples["B"] = examples["B"][:hparams.max_target_seq_length]
-      examples["B_m"] = examples["B_m"][:hparams.max_target_seq_length]
+      examples['A'] = examples['A'][:hparams.max_input_seq_length]
+      examples['B_m'] = examples['B_hat'][:hparams.max_input_seq_length]
+      examples['A_hat'] = examples['A_hat'][:hparams.max_input_seq_length]
+    if hparams.max_target_seq_length > 0:  
+      examples['B'] = examples['B'][:hparams.max_target_seq_length]
+      examples['B_m'] = examples['B_m'][:hparams.max_target_seq_length]
+      examples['A_m'] = examples['A_m'][:hparams.max_input_seq_length]
+    '''
+    if max_seq_length > 0;
+      examples['A'] = examples['A'][:max_seq_length]
+      examples['B'] = examples['B'][:max_seq_length]
+      examples['A_m'] = examples['A_m'][:max_seq_length]
+      examples['B_hat'] = examples['B_hat'][:max_seq_length]
+      examples['B_m'] = examples['B_m'][:max_seq_length]
+      examples['A_hat'] = examples['A_hat'][:max_seq_length]
+
     if hparams.prepend_mode != "none":
       examples["targets"] = tf.concat(
         [examples["inputs"], [0], examples["targets"]], 0)
@@ -93,24 +117,26 @@ class DualLearningEnde(problem.Text2TextProblem):
 
   def example_reading_spec(self):
     data_fields = {
-        "A": tf.VarLenFeature(tf.int64),
-        "B": tf.VarLenFeature(tf.int64),
-        "A_m": tf.VarLenFeature(tf.int64),
-        "B_m": tf.VarLenFeature(tf.int64)
+        'A': tf.VarLenFeature(tf.int64),
+        'B': tf.VarLenFeature(tf.int64),
+        'A_m': tf.VarLenFeature(tf.int64),
+        'B_hat': tf.VarLenFeature(tf.int64),
+        'B_m': tf.VarLenFeature(tf.int64),
+        'A_hat': tf.VarLenFeature(tf.int64),
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
 
-def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=None, eos=None):
+def token_generator(train, A_path, B_path, A_m_path=None, B_m_path=None, A_hat_path=None, B_hat_path=None, token_vocab=None, eos=None):
   '''
   Refer to token_generator in wmt.py
   Yields:
     A dictionary {"inputs": source-line, "targets": target-line} where
     the lines are integer lists converted from tokens in the file lines.
   '''
-  print("############# Token_generator is called ############")
+  tf.logging.info('Generating tokens...')
   eos_list = [] if eos is None else [eos]
-  if A_m_path is None and B_m_path is None:  
+  if not train:
     with tf.gfile.GFile(A_path, mode="r") as A_file:
       with tf.gfile.GFile(B_path, mode="r") as B_file:
         A, B = A_file.readline(), B_file.readline()
@@ -124,24 +150,40 @@ def token_generator(A_path, B_path, A_m_path=None, B_m_path=None, token_vocab=No
       with tf.gfile.GFile(B_path, mode="r") as B_file:
         with tf.gfile.GFile(A_m_path, mode="r") as A_m_file:
           with tf.gfile.GFile(B_m_path, mode="r") as B_m_file:
-            A, B, A_m, B_m = A_file.readline(), B_file.readline(), A_m_file.readline(), B_m_file.readline()
-            while A and B and A_m and B_m:
-              score_A = A.strip().rfind(' ')
-              score_B = B.strip().rfind(' ')
-              A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
-              B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
-              A_m_ints = token_vocab.encode(A_m.strip()) + eos_list
-              B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
-              yield {"A": A_ints, "B": B_ints, "A_m":A_m_ints, "B_m":B_m_ints}
-              A, B, A_m, B_m = A_file.readline(), B_file.readline(), A_m_file.readline(), B_m_file.readline()
+            with tf.gfile.GFile(A_hat_path, mode="r") as A_hat_file:
+              with tf.gfile.GFile(B_hat_path, mode="r") as B_hat_file:
+                A = A_file.readline(),
+                B = B_file.readline(),
+                A_m = A_m_file.readline()
+                B_m = B_m_file.readline()
+                A_hat = A_hat_file = A_hat_file.readline()
+                B_hat = B_hat_file = B_hat_file.readline()
+                while A and B and A_m and B_m and A_hat and B_hat:
+                  score_A = A.strip().rfind(' ')
+                  score_B = B.strip().rfind(' ')
+                  A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
+                  B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
+                  A_m_ints = token_vocab.encode(A_m.strip()) + eos_list
+                  B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
+                  A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
+                  B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
+                  yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat_ints':B_hat_ints}
+                  A = A_file.readline()
+                  B = B_file.readline()
+                  A_m = A_m_file.readline()
+                  B_m = B_m_file.readline()
+                  A_hat = A_hat_file = A_hat_file.readline()
+                  B_hat = B_hat_file = B_hat_file.readline()
     
 
 
 _DUAL_ENDE_TRAIN_DATASETS = [
-  'dual_ende.en',
-  'dual_ende.de',
-  'dual_en',
-  'dual_de'
+  'dual_parallel_ende.en',
+  'dual_parallel_ende.de',
+  'dual_mono_ende.en',
+  'dual_mono_ende.de',
+  'dual_infer_ende.en',
+  'dual_infer_ende.de',
 ]
 
 _DUAL_ENDE_TEST_DATASETS = [

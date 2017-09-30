@@ -104,14 +104,14 @@ def build_input_fn(mode,
     # We choose which problem to process.
     loss_moving_avgs = []  # Need loss moving averages for that.
     for problem_idx in xrange(problem_count):
-      with tf.variable_scope("DL_A2B"):
+      with tf.variable_scope("DUL_A2B"):
         with tf.variable_scope("losses_avg"):
           loss_moving_avgs.append(
               tf.get_variable(
                   "problem_%d/total_loss" % problem_idx,
                   initializer=100.0,
                   trainable=False))
-      with tf.variable_scope("DL_B2A"):
+      with tf.variable_scope("DUL_B2A"):
         with tf.variable_scope("losses_avg"):
           loss_moving_avgs.append(
               tf.get_variable(
@@ -153,6 +153,8 @@ def build_input_fn(mode,
     feature_map["B"].set_shape([None, None, None, None])
     feature_map["A_m"].set_shape([None, None, None, None])
     feature_map["B_m"].set_shape([None, None, None, None])
+    feature_map["A_hat"].set_shape([None, None, None, None])
+    feature_map["B_hat"].set_shape([None, None, None, None])
     feature_map["problem_choice"].set_shape([])
     feature_map["input_space_id"].set_shape([])
     feature_map["target_space_id"].set_shape([])
@@ -165,8 +167,6 @@ def build_input_fn(mode,
       #feature_map["targets"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
       feature_map["A"]._shape = tf.TensorShape([None, None, None, None])
       feature_map["B"]._shape = tf.TensorShape([None, None, None, None])
-      feature_map["A_m"]._shape = tf.TensorShape([None, None, None, None])
-      feature_map["B_m"]._shape = tf.TensorShape([None, None, None, None])
 
       # This is because of a bug in the Estimator that short-circuits prediction
       # if it doesn't see a QueueRunner.  DummyQueueRunner implements the
@@ -276,6 +276,10 @@ def features_for_problem(problem_instance,
       feature_map["A_m"] = tf.expand_dims(feature_map["A_m"], axis=-1)
     while len(feature_map["B_m"].get_shape()) != 4:
       feature_map["B_m"] = tf.expand_dims(feature_map["B_m"], axis=-1)
+    while len(feature_map["A_hat"].get_shape()) != 4:
+      feature_map["A_hat"] = tf.expand_dims(feature_map["A_hat"], axis=-1)
+    while len(feature_map["B_hat"].get_shape()) != 4:
+      feature_map["B_hat"] = tf.expand_dims(feature_map["B_hat"], axis=-1)
 
   feature_map["input_space_id"] = tf.constant(p_hparams.input_space_id)
   feature_map["target_space_id"] = tf.constant(p_hparams.target_space_id)
