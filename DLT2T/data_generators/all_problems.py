@@ -35,6 +35,7 @@ from DLT2T.data_generators import snli
 from DLT2T.data_generators import wiki
 from DLT2T.data_generators import wmt
 from DLT2T.data_generators import wsj_parsing
+from DLT2T.data_generators import dual_learning
 
 
 # Problem modules that require optional dependencies
