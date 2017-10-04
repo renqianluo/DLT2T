@@ -5,8 +5,8 @@ from setuptools import setup
 
 setup(
     name='DLT2T',
-    version='1.2.2',
-    description='Dual Learning for Tensor2Tensor',
+    version='1.2.4',
+    description='DLT2T',
     author='Renqian Luo',
     author_email='lrqrichard@gmail.com',
     url='http://github.com/renqianluo/DLT2T',

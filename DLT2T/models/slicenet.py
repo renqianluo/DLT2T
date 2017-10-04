@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The DLT2T Authors.
+# Copyright 2017 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ from __future__ import print_function
 from six.moves import xrange  # pylint: disable=redefined-builtin
 from six.moves import zip  # pylint: disable=redefined-builtin
 
-from DLT2T.layers import common_attention
-from DLT2T.layers import common_hparams
-from DLT2T.layers import common_layers
-from DLT2T.utils import registry
-from DLT2T.utils import t2t_model
+from tensor2tensor.layers import common_attention
+from tensor2tensor.layers import common_hparams
+from tensor2tensor.layers import common_layers
+from tensor2tensor.utils import registry
+from tensor2tensor.utils import t2t_model
 
 import tensorflow as tf
 
@@ -198,7 +198,7 @@ def slicenet_middle(inputs_encoded, targets, target_space_emb, mask, hparams):
     similarity_loss = 0.0
 
   # Use attention from each target to look at input and retrieve.
-  targets_shifted = common_layers.shift_left(
+  targets_shifted = common_layers.shift_right(
       targets_flat, pad_value=target_space_emb)
   if hparams.attention_type == "none":
     targets_with_attention = tf.zeros_like(targets_shifted)

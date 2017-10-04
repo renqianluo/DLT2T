@@ -141,7 +141,7 @@ class SmallImageModality(modality.Modality):
   def bottom(self, inputs):
     with tf.variable_scope(self.name):
       inputs = common_layers.standardize_images(inputs)
-      #tf.summary.image("inputs", inputs, max_outputs=2)
+      tf.summary.image("inputs", inputs, max_outputs=2)
       return common_layers.conv_block(
           inputs,
           self._body_input_depth, [((1, 1), (3, 3))],

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The DLT2T Authors.
+# Copyright 2017 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,11 +29,11 @@ from __future__ import print_function
 
 from six.moves import xrange  # pylint: disable=redefined-builtin
 
-from DLT2T.layers import common_attention
-from DLT2T.layers import common_hparams
-from DLT2T.layers import common_layers
-from DLT2T.utils import registry
-from DLT2T.utils import t2t_model
+from tensor2tensor.layers import common_attention
+from tensor2tensor.layers import common_hparams
+from tensor2tensor.layers import common_layers
+from tensor2tensor.utils import registry
+from tensor2tensor.utils import t2t_model
 
 import tensorflow as tf
 
@@ -79,7 +79,7 @@ def attention_lm_prepare_decoder(targets, hparams):
   else:
     decoder_self_attention_bias = (
         common_attention.attention_bias_lower_triangle(tf.shape(targets)[1]))
-  decoder_input = common_layers.shift_left_3d(targets)
+  decoder_input = common_layers.shift_right_3d(targets)
   if hparams.pos == "timing":
     decoder_input = common_attention.add_timing_signal_1d(decoder_input)
   return (decoder_input, decoder_self_attention_bias)

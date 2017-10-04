@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The DLT2T Authors.
+# Copyright 2017 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ from __future__ import print_function
 
 from six.moves import xrange  # pylint: disable=redefined-builtin
 
-from DLT2T.layers import common_hparams
-from DLT2T.layers import common_layers
-from DLT2T.utils import registry
-from DLT2T.utils import t2t_model
+from tensor2tensor.layers import common_hparams
+from tensor2tensor.layers import common_layers
+from tensor2tensor.utils import registry
+from tensor2tensor.utils import t2t_model
 
 import tensorflow as tf
 
@@ -66,7 +66,7 @@ def bytenet_internal(inputs, targets, hparams):
     final_encoder = residual_dilated_conv(inputs, hparams.num_block_repeat,
                                           "SAME", "encoder", hparams)
 
-    shifted_targets = common_layers.shift_left(targets)
+    shifted_targets = common_layers.shift_right(targets)
     kernel = (hparams.kernel_height, hparams.kernel_width)
     decoder_start = common_layers.conv_block(
         tf.concat([final_encoder, shifted_targets], axis=3),

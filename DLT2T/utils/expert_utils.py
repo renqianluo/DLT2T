@@ -61,11 +61,16 @@ def convert_gradient_to_tensor(x):
   return x
 
 
-def add_name_scope(scope):
-  """Return a decorator which add a TF name scope to a function.
+def add_scope(scope=None, scope_fn=None):
+  """Return a decorator which add a TF name/variable scope to a function.
+
+  Note that the function returned by the decorator accept an additional 'name'
+  parameter, which can overwritte the name scope given when the function is
+  created.
 
   Args:
-    scope (str): name of the name scope
+    scope (str): name of the scope. If None, the function name is used.
+    scope_fn (fct): Either tf.name_scope or tf.variable_scope
 
   Returns:
     fct: the add_scope decorator
@@ -74,12 +79,16 @@ def add_name_scope(scope):
 
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-      with tf.name_scope(scope):
+      name = kwargs.pop("name", None)  # Python 2 hack for keyword only args
+      with scope_fn(name or scope or f.__name__):
         return f(*args, **kwargs)
 
     return decorated
 
   return decorator
+
+add_var_scope = functools.partial(add_scope, scope_fn=tf.variable_scope)
+add_name_scope = functools.partial(add_scope, scope_fn=tf.name_scope)
 
 
 class Parallelism(object):
@@ -433,9 +442,9 @@ def noisy_top_k_gating(x,
       noisy_logits = clean_logits + (
           tf.random_normal(tf.shape(clean_logits)) * noise_stddev)
       logits = noisy_logits
-      #if not tf.get_variable_scope().reuse:
-        #tf.summary.histogram("noisy_logits", noisy_logits)
-        #tf.summary.histogram("noise_stddev", noise_stddev)
+      if not tf.get_variable_scope().reuse:
+        tf.summary.histogram("noisy_logits", noisy_logits)
+        tf.summary.histogram("noise_stddev", noise_stddev)
     else:
       logits = clean_logits
     top_logits, top_indices = _my_top_k(logits, min(k + 1, num_experts))
@@ -452,9 +461,9 @@ def noisy_top_k_gating(x,
                          k), 0)
     else:
       load = _gates_to_load(gates)
-    #if not tf.get_variable_scope().reuse:
-      #tf.summary.histogram("importance", tf.reduce_sum(gates, 0))
-      #tf.summary.histogram("load", load)
+    if not tf.get_variable_scope().reuse:
+      tf.summary.histogram("importance", tf.reduce_sum(gates, 0))
+      tf.summary.histogram("load", load)
     return gates, load
 
 
@@ -681,7 +690,7 @@ class SparseDispatcher(object):
         `[expert_batch_size_i, <extra_input_dims>]`.
     """
     inp = tf.gather(inp, self._batch_index)
-    return tf.split(inp, self._part_sizes_tensor, 0)
+    return tf.split(inp, self._part_sizes_tensor, 0, num=self._num_experts)
 
   def combine(self, expert_out, multiply_by_gates=True):
     """Sum together the expert output, weighted by the gates.
@@ -714,7 +723,18 @@ class SparseDispatcher(object):
       a list of `num_experts` one-dimensional `Tensor`s with type `tf.float32`
           and shapes `[expert_batch_size_i]`
     """
-    return tf.split(self._nonzero_gates, self._part_sizes_tensor, 0)
+    return tf.split(
+        self._nonzero_gates, self._part_sizes_tensor, 0, num=self._num_experts)
+
+  def expert_to_batch_indices(self):
+    """Batch indices corresponding to the examples in the per-expert `Tensor`s.
+
+    Returns:
+      a list of `num_experts` one-dimensional `Tensor`s with type `tf.int64`
+          and shapes `[expert_batch_size_i]`
+    """
+    return tf.split(
+        self._batch_index, self._part_sizes_tensor, 0, num=self._num_experts)
 
   @property
   def part_sizes(self):

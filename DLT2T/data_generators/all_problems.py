@@ -29,12 +29,12 @@ from DLT2T.data_generators import ice_parsing
 from DLT2T.data_generators import image
 from DLT2T.data_generators import imdb
 from DLT2T.data_generators import lm1b
+from DLT2T.data_generators import problem_hparams
 from DLT2T.data_generators import ptb
 from DLT2T.data_generators import snli
 from DLT2T.data_generators import wiki
 from DLT2T.data_generators import wmt
 from DLT2T.data_generators import wsj_parsing
-from DLT2T.data_generators import dual_learning
 
 
 # Problem modules that require optional dependencies

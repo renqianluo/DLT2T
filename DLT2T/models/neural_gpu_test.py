@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The DLT2T Authors.
+# Copyright 2017 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ from __future__ import print_function
 
 import numpy as np
 
-from DLT2T.data_generators import problem_hparams
-from DLT2T.layers import common_hparams
-from DLT2T.models import neural_gpu
+from tensor2tensor.data_generators import problem_hparams
+from tensor2tensor.layers import common_hparams
+from tensor2tensor.models import neural_gpu
 
 import tensorflow as tf
 
@@ -39,7 +39,7 @@ class NeuralGPUTest(tf.test.TestCase):
     target_length = input_length
     input_vocab_size = 9
     target_vocab_size = 11
-    p_hparams = problem_hparams.test_problem_hparams(hparams, input_vocab_size,
+    p_hparams = problem_hparams.test_problem_hparams(input_vocab_size,
                                                      target_vocab_size)
     inputs = -1 + np.random.random_integers(
         input_vocab_size, size=(batch_size, input_length, 1, 1))

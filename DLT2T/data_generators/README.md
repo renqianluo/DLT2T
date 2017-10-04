@@ -21,9 +21,9 @@ All tasks produce TFRecord files of `tensorflow.Example` protocol buffers.
 ## Adding a new problem
 
 To add a new problem, subclass
-[`Problem`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/problem.py)
+[`Problem`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/problem.py)
 and register it with `@registry.register_problem`. See
-[`WMTEnDeTokens8k`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/wmt.py)
+[`WMTEnDeTokens8k`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/wmt.py)
 for an example.
 
 `Problem`s support data generation, training, and decoding.
@@ -37,7 +37,7 @@ for training/decoding, e.g. a vocabulary file.
 A particularly easy way to implement `Problem.generate_data` for your dataset is
 to create 2 Python generators, one for the training data and another for the
 dev data, and pass them to `generator_utils.generate_dataset_and_shuffle`. See
-[`WMTEnDeTokens8k.generate_data`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/wmt.py)
+[`WMTEnDeTokens8k.generate_data`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/wmt.py)
 for an example of usage.
 
 The generators should yield dictionaries with string keys and values being lists
@@ -64,7 +64,7 @@ example, downloading data, generating vocabulary files, etc.
 
 Some examples:
 
-*   [Algorithmic problems](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/algorithmic.py)
-    and their [unit tests](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/algorithmic_test.py)
-*   [WMT problems](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/wmt.py)
-    and their [unit tests](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/wmt_test.py)
+*   [Algorithmic problems](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/algorithmic.py)
+    and their [unit tests](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/algorithmic_test.py)
+*   [WMT problems](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/wmt.py)
+    and their [unit tests](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/wmt_test.py)

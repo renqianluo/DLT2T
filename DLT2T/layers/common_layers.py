@@ -209,7 +209,7 @@ def embedding(x, vocab_size, dense_size, name=None, reuse=None, multiplier=1.0):
     return tf.reshape(emb_x, [shape[0], shape[1], shape[2], static_shape[4]])
 
 
-def shift_left(x, pad_value=None):
+def shift_right(x, pad_value=None):
   """Shift the second dimension of x right by one."""
   if pad_value is None:
     shifted_targets = tf.pad(x, [[0, 0], [1, 0], [0, 0], [0, 0]])[:, :-1, :, :]
@@ -218,7 +218,7 @@ def shift_left(x, pad_value=None):
   return shifted_targets
 
 
-def shift_left_3d(x, pad_value=None):
+def shift_right_3d(x, pad_value=None):
   """Shift the second dimension of x right by one."""
   if pad_value is None:
     shifted_targets = tf.pad(x, [[0, 0], [1, 0], [0, 0]])[:, :-1, :]
@@ -498,8 +498,15 @@ def apply_norm(x, norm_type, depth, epsilon):
                    "'noam', 'none'.")
 
 
-def layer_prepostprocess(previous_value, x, sequence, dropout_rate, norm_type,
-                         depth, epsilon, name):
+def layer_prepostprocess(previous_value,
+                         x,
+                         sequence,
+                         dropout_rate,
+                         norm_type,
+                         depth,
+                         epsilon,
+                         default_name,
+                         name=None):
   """Apply a sequence of functions to the input or output of a layer.
 
   The sequence is specified as a string which may contain the following
@@ -519,12 +526,13 @@ def layer_prepostprocess(previous_value, x, sequence, dropout_rate, norm_type,
     norm_type: a string (see apply_norm())
     depth: an integer (size of last dimension of x).
     epsilon: a float (parameter for normalization)
+    default_name: a string
     name: a string
 
   Returns:
     a Tensor
   """
-  with tf.variable_scope(name):
+  with tf.variable_scope(name, default_name=default_name):
     if sequence == "none":
       return x
     for c in sequence:
@@ -569,7 +577,7 @@ def layer_preprocess(layer_input, hparams):
       norm_type=hparams.norm_type,
       depth=hparams.hidden_size,
       epsilon=hparams.norm_epsilon,
-      name="layer_prepostprocess")
+      default_name="layer_prepostprocess")
 
 
 def layer_postprocess(layer_input, layer_output, hparams):
@@ -602,7 +610,7 @@ def layer_postprocess(layer_input, layer_output, hparams):
       norm_type=hparams.norm_type,
       depth=hparams.hidden_size,
       epsilon=hparams.norm_epsilon,
-      name="layer_postprocess")
+      default_name="layer_postprocess")
 
 
 def conv_block_internal(conv_fn,
@@ -815,7 +823,7 @@ def decompress_seqcnn(x,
     # Flatten x and embedded targets. Flat targets are factor* larger on axis=1.
     flat_x = tf.reshape(x, [-1, 1, 1, hidden_size])
     flat_targets = tf.reshape(targets_emb, [-1, factor, 1, hidden_size])
-    shifted_targets = shift_left(flat_targets)
+    shifted_targets = shift_right(flat_targets)
     # Run a SeqCNN large-batch to produce factor outputs out of every target.
     flat_x += tf.zeros_like(shifted_targets)  # Broadcast on axis=1.
     flat_outputs = conv_block(
@@ -873,8 +881,8 @@ def simple_attention(target, source, bias=None):
     if bias is not None:
       attention += tf.expand_dims(tf.squeeze(bias, axis=[2, 3]), axis=1)
     attention = tf.nn.softmax(attention)
-    #if not tf.get_variable_scope().reuse:
-      #tf.summary.image("attention", tf.expand_dims(attention, 3), max_outputs=5)
+    if not tf.get_variable_scope().reuse:
+      tf.summary.image("attention", tf.expand_dims(attention, 3), max_outputs=5)
     attended = tf.matmul(attention, source)
     return tf.reshape(attended, target_shape)
 
@@ -1177,7 +1185,7 @@ def attention_1d_v0(source,
           batch, target_length, source_length, 3, (num_heads + extra_heads) // 3
       ])
       image = tf.reduce_max(image, 4)
-      #tf.summary.image("local_attention", image, max_outputs=1)
+      tf.summary.image("local_attention", image, max_outputs=1)
     # output: [batch, num_heads, target_length, size_per_head]
     output = tf.matmul(attention, source_attention)
     output = tf.transpose(output, [0, 2, 1, 3])
@@ -1229,10 +1237,10 @@ def conv_hidden_relu(inputs,
         **kwargs)
     if dropout != 0.0:
       h = tf.nn.dropout(h, 1.0 - dropout)
-    #if not tf.get_variable_scope().reuse:
-      #tf.summary.histogram("hidden_density_logit",
-    #                       relu_density_logit(
-    #                           h, list(range(inputs.shape.ndims - 1))))
+    if not tf.get_variable_scope().reuse:
+      tf.summary.histogram("hidden_density_logit",
+                           relu_density_logit(
+                               h, list(range(inputs.shape.ndims - 1))))
     conv_f2 = conv if second_kernel_size == (1, 1) else separable_conv
     ret = conv_f2(h, output_size, second_kernel_size, name="conv2", **kwargs)
     if is_3d:
