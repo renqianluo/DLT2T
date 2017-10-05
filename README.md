@@ -1,38 +1,38 @@
-# T2T: Tensor2Tensor Transformers
+# T2T: DLT2T Transformers
 
 [![PyPI
-version](https://badge.fury.io/py/tensor2tensor.svg)](https://badge.fury.io/py/tensor2tensor)
+version](https://badge.fury.io/py/DLT2T.svg)](https://badge.fury.io/py/DLT2T)
 [![GitHub
-Issues](https://img.shields.io/github/issues/tensorflow/tensor2tensor.svg)](https://github.com/tensorflow/tensor2tensor/issues)
+Issues](https://img.shields.io/github/issues/tensorflow/DLT2T.svg)](https://github.com/tensorflow/DLT2T/issues)
 [![Contributions
 welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/tensor2tensor/Lobby)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/DLT2T/Lobby)
 [![License](https://img.shields.io/badge/License-Apache%202.0-brightgreen.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Travis](https://img.shields.io/travis/tensorflow/tensor2tensor.svg)](https://travis-ci.org/tensorflow/tensor2tensor)
+[![Travis](https://img.shields.io/travis/tensorflow/DLT2T.svg)](https://travis-ci.org/tensorflow/DLT2T)
 
-[T2T](https://github.com/tensorflow/tensor2tensor) is a modular and extensible
+[T2T](https://github.com/tensorflow/DLT2T) is a modular and extensible
 library and binaries for supervised learning with TensorFlow and with support
 for sequence tasks. It is actively used and maintained by researchers and
-engineers within the Google Brain team. You can read more about Tensor2Tensor in
+engineers within the Google Brain team. You can read more about DLT2T in
 the recent [Google Research Blog post introducing
 it](https://research.googleblog.com/2017/06/accelerating-deep-learning-research.html).
 
 We're eager to collaborate with you on extending T2T, so please feel
 free to [open an issue on
-GitHub](https://github.com/tensorflow/tensor2tensor/issues) or
+GitHub](https://github.com/tensorflow/DLT2T/issues) or
 send along a pull request to add your dataset or model.
 See [our contribution
 doc](CONTRIBUTING.md) for details and our [open
-issues](https://github.com/tensorflow/tensor2tensor/issues).
+issues](https://github.com/tensorflow/DLT2T/issues).
 You can chat with us and other users on
-[Gitter](https://gitter.im/tensor2tensor/Lobby) and please join our
-[Google Group](https://groups.google.com/forum/#!forum/tensor2tensor) to keep up
+[Gitter](https://gitter.im/DLT2T/Lobby) and please join our
+[Google Group](https://groups.google.com/forum/#!forum/DLT2T) to keep up
 with T2T announcements.
 
-Here is a one-command version that installs tensor2tensor, downloads the data,
+Here is a one-command version that installs DLT2T, downloads the data,
 trains an English-German translation model, and evaluates it:
 ```
-pip install tensor2tensor && t2t-trainer \
+pip install DLT2T && t2t-trainer \
   --generate_data \
   --data_dir=~/t2t_data \
   --problems=translate_ende_wmt32k \
@@ -78,7 +78,7 @@ model using the Transformer model from [*Attention Is All You
 Need*](https://arxiv.org/abs/1706.03762) on WMT data.
 
 ```
-pip install tensor2tensor
+pip install DLT2T
 
 # See what problems, models, and hyperparameter sets are available.
 # You can easily swap between them (and add new ones).
@@ -136,13 +136,13 @@ cat $DECODE_FILE.$MODEL.$HPARAMS.beam$BEAM_SIZE.alpha$ALPHA.decodes
 
 ```
 # Assumes tensorflow or tensorflow-gpu installed
-pip install tensor2tensor
+pip install DLT2T
 
 # Installs with tensorflow-gpu requirement
-pip install tensor2tensor[tensorflow_gpu]
+pip install DLT2T[tensorflow_gpu]
 
 # Installs with tensorflow (cpu) requirement
-pip install tensor2tensor[tensorflow]
+pip install DLT2T[tensorflow]
 ```
 
 Binaries:
@@ -158,7 +158,7 @@ t2t-trainer --registry_help
 Library usage:
 
 ```
-python -c "from tensor2tensor.models.transformer import Transformer"
+python -c "from DLT2T.models.transformer import Transformer"
 ```
 
 ---
@@ -176,7 +176,7 @@ python -c "from tensor2tensor.models.transformer import Transformer"
   specification.
 * Support for multi-GPU machines and synchronous (1 master, many workers) and
   asynchronous (independent workers synchronizing through a parameter server)
-  [distributed training](https://github.com/tensorflow/tensor2tensor/tree/master/docs/distributed_training.md).
+  [distributed training](https://github.com/tensorflow/DLT2T/tree/master/docs/distributed_training.md).
 * Easily swap amongst datasets and models by command-line flag with the data
   generation script `t2t-datagen` and the training script `t2t-trainer`.
 
@@ -189,7 +189,7 @@ python -c "from tensor2tensor.models.transformer import Transformer"
 **Datasets** are all standardized on `TFRecord` files with `tensorflow.Example`
 protocol buffers. All datasets are registered and generated with the
 [data
-generator](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/bin/t2t-datagen)
+generator](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/bin/t2t-datagen)
 and many common sequence datasets are already available for generation and use.
 
 ### Problems and Modalities
@@ -197,11 +197,11 @@ and many common sequence datasets are already available for generation and use.
 **Problems** define training-time hyperparameters for the dataset and task,
 mainly by setting input and output **modalities** (e.g. symbol, image, audio,
 label) and vocabularies, if applicable. All problems are defined either in
-[`problem_hparams.py`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/problem_hparams.py)
+[`problem_hparams.py`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/problem_hparams.py)
 or are registered with `@registry.register_problem` (run `t2t-datagen` to see
 the list of all available problems).
 **Modalities**, defined in
-[`modality.py`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/utils/modality.py),
+[`modality.py`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/utils/modality.py),
 abstract away the input and output data types so that **models** may deal with
 modality-independent tensors.
 
@@ -212,21 +212,21 @@ input/output modality or task. Models take dense tensors in and produce dense
 tensors that may then be transformed in a final step by a **modality** depending
 on the task (e.g. fed through a final linear transform to produce logits for a
 softmax over classes). All models are imported in the
-[`models` subpackage](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/models/__init__.py),
+[`models` subpackage](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/models/__init__.py),
 inherit from `T2TModel` - defined in
-[`t2t_model.py`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/utils/t2t_model.py) -
+[`t2t_model.py`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/utils/t2t_model.py) -
 and are registered with
-[`@registry.register_model`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/utils/registry.py).
+[`@registry.register_model`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/utils/registry.py).
 
 ### Hyperparameter Sets
 
 **Hyperparameter sets** are defined and registered in code with
-[`@registry.register_hparams`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/utils/registry.py)
+[`@registry.register_hparams`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/utils/registry.py)
 and are encoded in
 [`tf.contrib.training.HParams`](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/training/python/training/hparam.py)
 objects. The `HParams` are available to both the problem specification and the
 model. A basic set of hyperparameters are defined in
-[`common_hparams.py`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/layers/common_hparams.py)
+[`common_hparams.py`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/layers/common_hparams.py)
 and hyperparameter set functions can compose other hyperparameter set functions.
 
 ### Trainer
@@ -236,7 +236,7 @@ inference. Users can easily switch between problems, models, and hyperparameter
 sets by using the `--model`, `--problems`, and `--hparams_set` flags. Specific
 hyperparameters can be overridden with the `--hparams` flag. `--schedule` and
 related flags control local and distributed training/evaluation
-([distributed training documentation](https://github.com/tensorflow/tensor2tensor/tree/master/docs/distributed_training.md)).
+([distributed training documentation](https://github.com/tensorflow/DLT2T/tree/master/docs/distributed_training.md)).
 
 ---
 
@@ -255,8 +255,8 @@ Here's an example with a new hyperparameter set:
 ```python
 # In ~/usr/t2t_usr/my_registrations.py
 
-from tensor2tensor.models import transformer
-from tensor2tensor.utils import registry
+from DLT2T.models import transformer
+from DLT2T.utils import registry
 
 @registry.register_hparams
 def transformer_my_very_own_hparams_set():
@@ -284,13 +284,13 @@ registrations.
 ## Adding a dataset
 
 To add a new dataset, subclass
-[`Problem`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/problem.py)
+[`Problem`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/problem.py)
 and register it with `@registry.register_problem`. See
-[`TranslateEndeWmt8k`](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/wmt.py)
+[`TranslateEndeWmt8k`](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/wmt.py)
 for an example.
 
 Also see the [data generators
-README](https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/data_generators/README.md).
+README](https://github.com/tensorflow/DLT2T/tree/master/DLT2T/data_generators/README.md).
 
 ---
 

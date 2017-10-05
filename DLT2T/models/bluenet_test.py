@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The Tensor2Tensor Authors.
+# Copyright 2017 The DLT2T Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ from __future__ import print_function
 
 import numpy as np
 
-from tensor2tensor.data_generators import problem_hparams
-from tensor2tensor.models import bluenet
+from DLT2T.data_generators import problem_hparams
+from DLT2T.models import bluenet
 
 import tensorflow as tf
 

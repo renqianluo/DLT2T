@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The Tensor2Tensor Authors.
+# Copyright 2017 The DLT2T Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,13 +29,13 @@ from __future__ import print_function
 
 # Dependency imports
 
-from tensor2tensor.layers import common_attention
-from tensor2tensor.layers import common_hparams
-from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import diet
-from tensor2tensor.utils import expert_utils
-from tensor2tensor.utils import registry
-from tensor2tensor.utils import t2t_model
+from DLT2T.layers import common_attention
+from DLT2T.layers import common_hparams
+from DLT2T.layers import common_layers
+from DLT2T.utils import diet
+from DLT2T.utils import expert_utils
+from DLT2T.utils import registry
+from DLT2T.utils import t2t_model
 
 import tensorflow as tf
 

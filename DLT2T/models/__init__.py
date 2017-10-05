@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The Tensor2Tensor Authors.
+# Copyright 2017 The DLT2T Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,23 +22,23 @@ from __future__ import print_function
 
 # pylint: disable=unused-import
 
-from tensor2tensor.layers import modalities
-from tensor2tensor.models import aligned
-from tensor2tensor.models import attention_lm
-from tensor2tensor.models import attention_lm_moe
-from tensor2tensor.models import bluenet
-from tensor2tensor.models import bytenet
-from tensor2tensor.models import cycle_gan
-from tensor2tensor.models import gene_expression
-from tensor2tensor.models import lstm
-from tensor2tensor.models import multimodel
-from tensor2tensor.models import neural_gpu
-from tensor2tensor.models import shake_shake
-from tensor2tensor.models import slicenet
-from tensor2tensor.models import transformer
-from tensor2tensor.models import transformer_alternative
-from tensor2tensor.models import transformer_moe
-from tensor2tensor.models import transformer_revnet
-from tensor2tensor.models import transformer_vae
-from tensor2tensor.models import xception
+from DLT2T.layers import modalities
+from DLT2T.models import aligned
+from DLT2T.models import attention_lm
+from DLT2T.models import attention_lm_moe
+from DLT2T.models import bluenet
+from DLT2T.models import bytenet
+from DLT2T.models import cycle_gan
+from DLT2T.models import gene_expression
+from DLT2T.models import lstm
+from DLT2T.models import multimodel
+from DLT2T.models import neural_gpu
+from DLT2T.models import shake_shake
+from DLT2T.models import slicenet
+from DLT2T.models import transformer
+from DLT2T.models import transformer_alternative
+from DLT2T.models import transformer_moe
+from DLT2T.models import transformer_revnet
+from DLT2T.models import transformer_vae
+from DLT2T.models import xception
 # pylint: enable=unused-import
