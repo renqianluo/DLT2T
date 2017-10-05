@@ -317,7 +317,7 @@ def model_fn(model,
               "problem_%d_steps" % n, initializer=0, trainable=False)
           ops.append(problem_steps.assign_add(1))
 
-    total_loss = total_loss_A2B + total_lossB2A
+    total_loss = total_loss_A2B + total_loss_B2A
 
     if train_mode == "dual":
       lm_decay = tf.constant(0.3)
