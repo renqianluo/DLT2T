@@ -200,7 +200,7 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
                   B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
                   A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
                   B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
-                  yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat_ints':B_hat_ints}
+                  yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints}
                   A = A_file.readline()
                   B = B_file.readline()
                   A_m = A_m_file.readline()
