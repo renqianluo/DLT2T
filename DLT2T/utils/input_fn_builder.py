@@ -29,6 +29,7 @@ import tensorflow as tf
 
 
 def build_input_fn(mode,
+                   train_mode,
                    hparams,
                    data_dir=None,
                    num_datashards=None,
@@ -139,13 +140,15 @@ def build_input_fn(mode,
     # Set shapes so the ranks are clear.
     feature_map["A"].set_shape([None, None, None, None])
     feature_map["A_space_id"].set_shape([])
-    feature_map["A_m"].set_shape([None, None, None, None])
-    feature_map["A_hat"].set_shape([None, None, None, None])
-
     feature_map["B"].set_shape([None, None, None, None])
     feature_map["B_space_id"].set_shape([])
-    feature_map["B_m"].set_shape([None, None, None, None])
-    feature_map["B_hat"].set_shape([None, None, None, None])
+
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      if train_mode == "dual":
+        feature_map["A_m"].set_shape([None, None, None, None])
+        feature_map["A_hat"].set_shape([None, None, None, None])       
+        feature_map["B_m"].set_shape([None, None, None, None])
+        feature_map["B_hat"].set_shape([None, None, None, None])
 
     feature_map["problem_choice"].set_shape([])
     

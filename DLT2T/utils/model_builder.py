@@ -45,6 +45,7 @@ def model_fn(model,
              features,
              mode,
              hparams,
+             train_mode,
              problem_names,
              train_steps=100000,
              worker_id=0,
@@ -192,7 +193,7 @@ def model_fn(model,
         features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
         sharded_logits_B, losses_dict_B = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
-        if hparams.train_mode == "dual":
+        if train_mode == "dual":
           features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
           features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
           sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
@@ -202,7 +203,7 @@ def model_fn(model,
         features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
         sharded_logits_A, losses_dict_A = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
-        if hparams.train_mode == "dual":
+        if train_mode == "dual":
           features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
@@ -263,7 +264,7 @@ def model_fn(model,
             "problem_%d_steps" % n, initializer=0, trainable=False)
         ops.append(problem_steps.assign_add(1))
 
-    if hparams.train_mode == "dual":
+    if train_mode == "dual":
       with tf.variable_scope("A_hat2B_m"):
         with tf.variable_scope("losses_avg"):
           total_loss_A_hat2B_m = 0.0
@@ -316,7 +317,7 @@ def model_fn(model,
 
     total_loss = total_loss_A2B + total_lossB2A
 
-    if hparams.train_mode == "dual":
+    if train_mode == "dual":
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
       total_loss += total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
@@ -326,7 +327,7 @@ def model_fn(model,
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
 
-    if hparams.train_mode == "dual":
+    if train_mode == "dual":
       return [total_loss, [tf.concat(sharded_logits_B, 0), tf.concat(sharded_logits_A, 0), 
                           tf.concat(sharded_logits_B_m, 0), tf.concat(sharded_logits_A_m, 0)]]
     else:
@@ -374,7 +375,7 @@ def model_fn(model,
         })
 
   total_loss, logits = model_output
-  if hparams.train_mode == "dual":
+  if train_mode == "dual":
     logits_B, logits_A, logits_B_m, logits_A_m = logits
   else:
     logits_B, logits_A = logits
@@ -445,7 +446,7 @@ def model_fn(model,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
 
-      if hparams.train_mode == "dual":
+      if train_mode == "dual":
         with tf.variable_scope("A_hat2B_m"):
           names_and_vars = []
           with tf.variable_scope("losses_avg", reuse=True):
@@ -520,7 +521,7 @@ def model_fn(model,
       initializer=tf.ones_initializer(),
       trainable=False)
   targets_nonpadding_tokens = tf.maximum(A_nonpadding_tokens, B_nonpadding_tokens)
-  if hparams.train_mode == "dual":
+  if train_mode == "dual":
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_m_nonpadding_tokens)
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_hat_nonpadding_tokens)
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_m_nonpadding_tokens)

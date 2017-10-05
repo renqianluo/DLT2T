@@ -127,9 +127,10 @@ class DualLearningEnde(problem.Text2TextProblem):
       examples['B_m'] = examples['B_m'][:max_seq_length]
       examples['A_hat'] = examples['A_hat'][:max_seq_length]
 
+    '''
     if hparams.prepend_mode != "none":
       examples["targets"] = tf.concat(
-        [examples["inputs"], [0], examples["targets"]], 0)
+        [examples["inputs"], [0], examples["targets"]], 0)'''
     return examples
 
   def example_reading_spec(self):
