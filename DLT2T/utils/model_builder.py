@@ -90,7 +90,7 @@ def model_fn(model,
     for (k, v) in six.iteritems(features):
       print("##############%s" % k, v.get_shape())
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
-        v = tf.Print(v, [k, tf.shape(v), v.get_shape()])
+        v = tf.Print(v, [v, tf.shape(v), v.get_shape()])
         if k == "A" and is_training:
           score_extractor = tf.constant(1000000.0, shape=[])
           lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
@@ -205,7 +205,7 @@ def model_fn(model,
           features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
           sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
               features, skip=(skipping_is_on and skip_this_one))
-          
+
       with tf.variable_scope("B2A"):
         features["inputs"], features["targets"] = features["B"], features["A"]
         features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
