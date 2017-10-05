@@ -184,12 +184,12 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
           with tf.gfile.GFile(B_m_path, mode="r") as B_m_file:
             with tf.gfile.GFile(A_hat_path, mode="r") as A_hat_file:
               with tf.gfile.GFile(B_hat_path, mode="r") as B_hat_file:
-                A = A_file.readline(),
-                B = B_file.readline(),
+                A = A_file.readline()
+                B = B_file.readline()
                 A_m = A_m_file.readline()
                 B_m = B_m_file.readline()
-                A_hat = A_hat_file = A_hat_file.readline()
-                B_hat = B_hat_file = B_hat_file.readline()
+                A_hat = A_hat_file.readline()
+                B_hat = B_hat_file.readline()
                 while A and B and A_m and B_m and A_hat and B_hat:
                   score_A = A.strip().rfind(' ')
                   score_B = B.strip().rfind(' ')
@@ -204,21 +204,21 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
                   B = B_file.readline()
                   A_m = A_m_file.readline()
                   B_m = B_m_file.readline()
-                  A_hat = A_hat_file = A_hat_file.readline()
-                  B_hat = B_hat_file = B_hat_file.readline()
+                  A_hat = A_hat_file.readline()
+                  B_hat = B_hat_file.readline()
     
 
 
 _DUAL_ENDE_TRAIN_DATASETS = [
-  'dual_parallel_ende.en',
-  'dual_parallel_ende.de',
-  'dual_mono_ende.en',
-  'dual_mono_ende.de',
-  'dual_infer_ende.en',
-  'dual_infer_ende.de',
+  'parallel_ende.en',
+  'parallel_ende.de',
+  'mono_ende.en',
+  'mono_ende.de',
+  'infer_ende.en',
+  'infer_ende.de',
 ]
 
 _DUAL_ENDE_TEST_DATASETS = [
-  'dual_ende.en',
-  'dual_ende.de',
+  'dev_ende.en',
+  'dev_ende.de',
 ]
