@@ -119,7 +119,7 @@ class DualLearningEnde(problem.Text2TextProblem):
       examples['B_m'] = examples['B_m'][:hparams.max_target_seq_length]
       examples['A_m'] = examples['A_m'][:hparams.max_input_seq_length]
     '''
-    if max_seq_length > 0;
+    if max_seq_length > 0:
       examples['A'] = examples['A'][:max_seq_length]
       examples['B'] = examples['B'][:max_seq_length]
       examples['A_m'] = examples['A_m'][:max_seq_length]
