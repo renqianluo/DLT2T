@@ -194,6 +194,7 @@ def model_fn(model,
         sharded_logits_B, losses_dict_B = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
         if train_mode == "dual":
+          tf.get_variable_scope().reuse()
           features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
           features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
           sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
@@ -204,6 +205,7 @@ def model_fn(model,
         sharded_logits_A, losses_dict_A = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
         if train_mode == "dual":
+          tf.get_variable_scope().reuse()
           features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
