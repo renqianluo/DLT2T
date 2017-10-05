@@ -80,7 +80,7 @@ def main(_):
     for problem_name in FLAGS.problems.split("-"):
       tf.logging.info("Generating data for %s" % problem_name)
       problem = registry.problem(problem_name)
-      problem.generate_data(data_dir, tmp_dir)
+      problem.generate_data(data_dir, tmp_dir, FLAGS.train_mode)
 
   # Run the trainer.
   trainer_utils.run(

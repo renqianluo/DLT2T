@@ -86,19 +86,63 @@ def model_fn(model,
   # Add input statistics for incoming features.
   with tf.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
+      print("##############%s" % k, v.get_shape())
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
+        if k == "A" and is_training:
+          score_extractor = tf.constant(1000000.0, shape=[])
+          lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
+          v = v[:, :-1, :, :]
+        elif k == "B" and is_training:
+          score_extractor = tf.constant(1000000.0, shape=[])
+          lm_scores_B = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
+          v = v[:, :-1, :, :]
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
         nonpadding = tf.to_float(tf.not_equal(v, 0))
         nonpadding_tokens = tf.reduce_sum(nonpadding)
+        if k == "A":
+          A_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, A_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        elif k == "B":
+          B_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, B_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        elif k == "A_m":
+          A_m_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, A_m_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        elif k == "B_m":
+          B_m_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, B_m_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        elif k == "A_hat":
+          A_hat_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, A_hat_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        elif k == "B_hat":
+          B_hat_nonpadding_tokens = nonpadding_tokens
+          tf.summary.scalar("%s_nonpadding_tokens" % k, B_hat_nonpadding_tokens)
+          tf.summary.scalar("%s_nonpadding_fraction" % k,
+                          tf.reduce_mean(nonpadding))
+        '''
         if k == "targets":
           targets_nonpadding_tokens = nonpadding_tokens
         tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
         tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
+                          tf.reduce_mean(nonpadding))'''
 
   # Get multi-problem logits and loss based on features["problem_choice"].
   loss_variable_names = []
+  loss_variable_names_A2B = []
+  loss_variable_names_B2A = []
+  loss_variable_names_A_hat2B_m = []
+  loss_variable_names_B_hat2A_m = []
 
   def nth_model(n):
     """Build the model for the n-th problem, plus some added variables."""
@@ -110,13 +154,28 @@ def model_fn(model,
         dp,
         devices.ps_devices(all_workers=True))
     if mode == tf.estimator.ModeKeys.PREDICT:
-      return model_class.infer(
-          features,
-          beam_size=decode_hp.beam_size,
-          top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
-          last_position_only=decode_hp.use_last_position_only,
-          alpha=decode_hp.alpha,
-          decode_length=decode_hp.extra_length)
+      if hparams.infer_mode == "A2B":
+        with tf.variable_scope("A2B"):
+          features["inputs"] = features["A"]
+          features["targets"] = features["B"]
+          return model_class.infer(
+              features,
+              beam_size=decode_hp.beam_size,
+              top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
+              last_position_only=decode_hp.use_last_position_only,
+              alpha=decode_hp.alpha,
+              decode_length=decode_hp.extra_length)
+      else:
+        with tf.variable_scope("B2A"):
+          features["inputs"] = features["B"]
+          features["targets"] = features["A"]
+          return model_class.infer(
+              features,
+              beam_size=decode_hp.beam_size,
+              top_beams=(decode_hp.beam_size if decode_hp.return_beams else 1),
+              last_position_only=decode_hp.use_last_position_only,
+              alpha=decode_hp.alpha,
+              decode_length=decode_hp.extra_length)
     # In distributed mode, we build graph for problem=0 and problem=worker_id.
     skipping_is_on = hparams.problem_choice == "distributed" and is_training
     problem_worker_id = worker_id % len(hparams.problems)
@@ -127,35 +186,151 @@ def model_fn(model,
     if eval_run_autoregressive and mode == tf.estimator.ModeKeys.EVAL:
       sharded_logits, losses_dict = model_class.eval_autoregressive(features)
     else:
-      sharded_logits, losses_dict = model_class.model_fn(
-          features, skip=(skipping_is_on and skip_this_one))
-    with tf.variable_scope("losses_avg"):
-      total_loss, ops = 0.0, []
-      for loss_key, loss_value in six.iteritems(losses_dict):
-        loss_name = "problem_%d/%s_loss" % (n, loss_key)
-        loss_moving_avg = tf.get_variable(
-            loss_name, initializer=100.0, trainable=False)
-        loss_variable_names.append(loss_name)
+
+      with tf.variable_scope("A2B"):
+        features["inputs"], features["targets"] = features["A"], features["B"]
+        features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
+        sharded_logits_B, losses_dict_B = model_class.model_fn(
+            features, skip=(skipping_is_on and skip_this_one))
+        if hparams.train_mode == "dual":
+          features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
+          features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
+          sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
+              features, skip=(skipping_is_on and skip_this_one))
+      with tf.variable_scope("B2A"):
+        features["inputs"], features["targets"] = features["B"], features["A"]
+        features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
+        sharded_logits_A, losses_dict_A = model_class.model_fn(
+            features, skip=(skipping_is_on and skip_this_one))
+        if hparams.train_mode == "dual":
+          features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
+          features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
+          sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
+              features, skip=(skipping_is_on and skip_this_one))
+
+    lm_score_A = tf.constant(0.0)
+    lm_score_B = tf.constant(0.0)
+
+    total_loss, ops = 0.0, []
+
+    with tf.variable_scope("A2B"):
+      with tf.variable_scope("losses_avg"):
+        total_loss_A2B = 0.0
+        for loss_key, loss_value in six.iteritems(losses_dict_B):
+          loss_name = "problem_%d/%s_loss" % (n, loss_key)
+          loss_moving_avg = tf.get_variable(
+              loss_name, initializer=100.0, trainable=False)
+          loss_variable_names_A2B.append(loss_name)
+          ops.append(
+              loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
+          total_loss_A2B += loss_value
+        try:  # Total loss avg might be reused or not, we try both.
+          with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            # Total loss was already constructed on input.
+            loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
+        except ValueError:
+          loss_moving_avg = tf.get_variable(
+              "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
         ops.append(
-            loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
-        total_loss += loss_value
-      try:  # Total loss avg might be reused or not, we try both.
-        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-          # Total loss was already constructed on input.
-          loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
-      except ValueError:
-        loss_moving_avg = tf.get_variable(
-            "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
-      ops.append(
-          loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss * 0.1))
-    with tf.variable_scope("train_stats"):  # Count steps for this problem.
-      problem_steps = tf.get_variable(
-          "problem_%d_steps" % n, initializer=0, trainable=False)
-      ops.append(problem_steps.assign_add(1))
+            loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_A2B * 0.1))
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+        ops.append(problem_steps.assign_add(1))
+
+    with tf.variable_scope("B2A"):
+      with tf.variable_scope("losses_avg"):
+        total_loss_B2A = 0.0
+        for loss_key, loss_value in six.iteritems(losses_dict_A):
+          loss_name = "problem_%d/%s_loss" % (n, loss_key)
+          loss_moving_avg = tf.get_variable(
+              loss_name, initializer=100.0, trainable=False)
+          loss_variable_names_B2A.append(loss_name)
+          ops.append(
+              loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
+          total_loss_B2A += loss_value
+        try:  # Total loss avg might be reused or not, we try both.
+          with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            # Total loss was already constructed on input.
+            loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
+        except ValueError:
+          loss_moving_avg = tf.get_variable(
+              "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
+        ops.append(
+            loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_B2A * 0.1))
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+        ops.append(problem_steps.assign_add(1))
+
+    if hparams.train_mode == "dual":
+      with tf.variable_scope("A_hat2B_m"):
+        with tf.variable_scope("losses_avg"):
+          total_loss_A_hat2B_m = 0.0
+          for loss_key, loss_value in six.iteritems(losses_dict_B_m):
+            loss_name = "problem_%d/%s_loss" % (n, loss_key)
+            loss_moving_avg = tf.get_variable(
+                loss_name, initializer=100.0, trainable=False)
+            loss_variable_names_A_hat2B_m.append(loss_name)
+            ops.append(
+                loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
+            total_loss_A_hat2B_m += loss_value
+          try:  # Total loss avg might be reused or not, we try both.
+            with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+              # Total loss was already constructed on input.
+              loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
+          except ValueError:
+            loss_moving_avg = tf.get_variable(
+                "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
+          ops.append(
+              loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_A_hat2B_m * 0.1))
+        with tf.variable_scope("train_stats"):  # Count steps for this problem.
+          problem_steps = tf.get_variable(
+              "problem_%d_steps" % n, initializer=0, trainable=False)
+          ops.append(problem_steps.assign_add(1))
+
+      with tf.variable_scope("B_hat2A_m"):
+        with tf.variable_scope("losses_avg"):
+          total_loss_B_hat2A_m = 0.0
+          for loss_key, loss_value in six.iteritems(losses_dict_A_m):
+            loss_name = "problem_%d/%s_loss" % (n, loss_key)
+            loss_moving_avg = tf.get_variable(
+                loss_name, initializer=100.0, trainable=False)
+            loss_variable_names_B_hat2A_m.append(loss_name)
+            ops.append(
+                loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
+            total_loss_B_hat2A_m += loss_value
+          try:  # Total loss avg might be reused or not, we try both.
+            with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+              # Total loss was already constructed on input.
+              loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
+          except ValueError:
+            loss_moving_avg = tf.get_variable(
+                "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
+          ops.append(
+              loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_B_hat2A_m * 0.1))
+        with tf.variable_scope("train_stats"):  # Count steps for this problem.
+          problem_steps = tf.get_variable(
+              "problem_%d_steps" % n, initializer=0, trainable=False)
+          ops.append(problem_steps.assign_add(1))
+
+    total_loss = total_loss_A2B + total_lossB2A
+
+    if hparams.train_mode == "dual":
+      lm_decay = tf.constant(0.3)
+      trade_off = tf.constant(0.01)
+      total_loss += total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
+          trade_off * (lm_decay * lm_score_A + total_loss_A2B - lm_decay * lm_score_B - total_loss_B2A) ** 2
+
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
-    return [total_loss, tf.concat(sharded_logits, 0)]
+
+    if hparams.train_mode == "dual":
+      return [total_loss, [tf.concat(sharded_logits_B, 0), tf.concat(sharded_logits_A, 0), 
+                          tf.concat(sharded_logits_B_m, 0), tf.concat(sharded_logits_A_m, 0)]]
+    else:
+      return [total_loss, [tf.concat(sharded_logits_B, 0), tf.concat(sharded_logits_A, 0)]]
 
   model_output = input_fn_builder.cond_on_index(
       nth_model,
@@ -175,12 +350,16 @@ def model_fn(model,
     batched_problem_choice = (features["problem_choice"] * tf.ones(
         (tf.shape(features["inputs"])[0],), dtype=tf.int32))
     predictions = {
-        "outputs": outputs,
-        "scores": scores,
-        "inputs": features.get("inputs", None),
-        "targets": features.get("infer_targets", None),
-        "problem_choice": batched_problem_choice,
-    }
+          "outputs": outputs,
+          "scores": scores,
+          "targets": features.get("infer_targets", None),
+          "problem_choice": batched_problem_choice,
+      }
+    if hparams.infer_mode == "A2B":
+      predictions["inputs"] = features.get("A", None)
+    else:
+      predictions["inputs"] = features.get("B", None)
+         
     _del_dict_nones(predictions)
 
     export_out = {"outputs": predictions["outputs"]}
@@ -195,6 +374,10 @@ def model_fn(model,
         })
 
   total_loss, logits = model_output
+  if hparams.train_mode == "dual":
+    logits_B, logits_A, logits_B_m, logits_A_m = logits
+  else:
+    logits_B, logits_A = logits
 
   if mode == tf.estimator.ModeKeys.EVAL:
     eval_metrics_fns = metrics.create_evaluation_metrics(
@@ -224,23 +407,82 @@ def model_fn(model,
   with tf.name_scope("training_stats"):
     tf.summary.scalar("learning_rate", learning_rate)
     for n in xrange(len(hparams.problems)):
-      names_and_vars = []
-      with tf.variable_scope("losses_avg", reuse=True):
-        total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
-        names_and_vars.append(("total_loss", total_loss_var))
-      with tf.variable_scope("losses_avg", reuse=True):
-        for loss_name in loss_variable_names:
-          if loss_name.startswith("problem_%d/" % n):
-            loss_var = tf.get_variable(loss_name)
-            loss_suffix = loss_name[loss_name.index("/") + 1:]
-            names_and_vars.append((loss_suffix, loss_var))
-      for (loss_name, loss_var) in names_and_vars:
-        tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
-      with tf.variable_scope("train_stats", reuse=True):
-        nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-      tf.summary.scalar("problem_%d_frequency" % n,
-                        tf.to_float(nth_steps) /
-                        (tf.to_float(global_step) + 1.0))
+      with tf.variable_scope("A2B"):
+        names_and_vars = []
+        with tf.variable_scope("losses_avg", reuse=True):
+          total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
+          names_and_vars.append(("total_loss", total_loss_var))
+        with tf.variable_scope("losses_avg", reuse=True):
+          for loss_name in loss_variable_names_A2B:
+            if loss_name.startswith("problem_%d/" % n):
+              loss_var = tf.get_variable(loss_name)
+              loss_suffix = loss_name[loss_name.index("/") + 1:]
+              names_and_vars.append((loss_suffix, loss_var))
+        for (loss_name, loss_var) in names_and_vars:
+          tf.summary.scalar("A2B/loss_avg_%d/%s" % (n, loss_name), loss_var)
+        with tf.variable_scope("train_stats", reuse=True):
+          nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
+        tf.summary.scalar("A2B/problem_%d_frequency" % n,
+                          tf.to_float(nth_steps) /
+                          (tf.to_float(global_step) + 1.0))
+
+      with tf.variable_scope("B2A"):
+        names_and_vars = []
+        with tf.variable_scope("losses_avg", reuse=True):
+          total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
+          names_and_vars.append(("total_loss", total_loss_var))
+        with tf.variable_scope("losses_avg", reuse=True):
+          for loss_name in loss_variable_names_B2A:
+            if loss_name.startswith("problem_%d/" % n):
+              loss_var = tf.get_variable(loss_name)
+              loss_suffix = loss_name[loss_name.index("/") + 1:]
+              names_and_vars.append((loss_suffix, loss_var))
+        for (loss_name, loss_var) in names_and_vars:
+          tf.summary.scalar("B2A/loss_avg_%d/%s" % (n, loss_name), loss_var)
+        with tf.variable_scope("train_stats", reuse=True):
+          nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
+        tf.summary.scalar("B2A/problem_%d_frequency" % n,
+                          tf.to_float(nth_steps) /
+                          (tf.to_float(global_step) + 1.0))
+
+      if hparams.train_mode == "dual":
+        with tf.variable_scope("A_hat2B_m"):
+          names_and_vars = []
+          with tf.variable_scope("losses_avg", reuse=True):
+            total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
+            names_and_vars.append(("total_loss", total_loss_var))
+          with tf.variable_scope("losses_avg", reuse=True):
+            for loss_name in loss_variable_names_A_hat2B_m:
+              if loss_name.startswith("problem_%d/" % n):
+                loss_var = tf.get_variable(loss_name)
+                loss_suffix = loss_name[loss_name.index("/") + 1:]
+                names_and_vars.append((loss_suffix, loss_var))
+          for (loss_name, loss_var) in names_and_vars:
+            tf.summary.scalar("A_hat2B_m/loss_avg_%d/%s" % (n, loss_name), loss_var)
+          with tf.variable_scope("train_stats", reuse=True):
+            nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
+          tf.summary.scalar("A_hat2B_m/problem_%d_frequency" % n,
+                            tf.to_float(nth_steps) /
+                            (tf.to_float(global_step) + 1.0))
+
+        with tf.variable_scope("B_hat2A_m"):
+          names_and_vars = []
+          with tf.variable_scope("losses_avg", reuse=True):
+            total_loss_var = tf.get_variable("problem_%d/total_loss" % n)
+            names_and_vars.append(("total_loss", total_loss_var))
+          with tf.variable_scope("losses_avg", reuse=True):
+            for loss_name in loss_variable_names_B_hat2A_m:
+              if loss_name.startswith("problem_%d/" % n):
+                loss_var = tf.get_variable(loss_name)
+                loss_suffix = loss_name[loss_name.index("/") + 1:]
+                names_and_vars.append((loss_suffix, loss_var))
+          for (loss_name, loss_var) in names_and_vars:
+            tf.summary.scalar("B_hat2A_m/loss_avg_%d/%s" % (n, loss_name), loss_var)
+          with tf.variable_scope("train_stats", reuse=True):
+            nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
+          tf.summary.scalar("B_hat2A_m/problem_%d_frequency" % n,
+                            tf.to_float(nth_steps) /
+                            (tf.to_float(global_step) + 1.0))
 
   # Add weight decay and noise.
   total_size, weight_decay_loss = 0, 0.0
@@ -254,7 +496,7 @@ def model_fn(model,
       with tf.device(v._ref().device):  # pylint: disable=protected-access
         v_loss = tf.nn.l2_loss(v) / v_size
       weight_decay_loss += v_loss
-    is_body = len(v_name) > 5 and v_name[:5] == "body/"
+    is_body = len(v_name) > 9 and v_name[4:9] == "body/"
     if hparams.weight_noise > 0.0 and is_body:
       # Add weight noise if set in hparams.
       with tf.device(v._ref().device):  # pylint: disable=protected-access
@@ -277,6 +519,13 @@ def model_fn(model,
       shape=[],
       initializer=tf.ones_initializer(),
       trainable=False)
+  targets_nonpadding_tokens = tf.maximum(A_nonpadding_tokens, B_nonpadding_tokens)
+  if hparams.train_mode == "dual":
+    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_m_nonpadding_tokens)
+    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_hat_nonpadding_tokens)
+    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_m_nonpadding_tokens)
+    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_hat_nonpadding_tokens)
+
   max_nonpadding = tf.maximum(max_nonpadding_var, targets_nonpadding_tokens)
   with tf.control_dependencies([tf.assign(max_nonpadding_var, max_nonpadding)]):
     small_batch_multiplier = targets_nonpadding_tokens / max_nonpadding
@@ -341,8 +590,8 @@ def build_model_fn(model, **kwargs):
     hparams = copy.deepcopy(params)
     del params
 
-    if labels is not None:
-      features["targets"] = labels
+    #if labels is not None:
+    #  features["targets"] = labels
     del labels
 
     return model_fn(model, features, mode, hparams, **kwargs)

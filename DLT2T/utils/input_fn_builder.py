@@ -105,12 +105,21 @@ def build_input_fn(mode,
     # We choose which problem to process.
     loss_moving_avgs = []  # Need loss moving averages for that.
     for problem_idx in xrange(problem_count):
-      with tf.variable_scope("losses_avg"):
-        loss_moving_avgs.append(
-            tf.get_variable(
-                "problem_%d/total_loss" % problem_idx,
-                initializer=100.0,
-                trainable=False))
+      with tf.variable_scope("A2B"):
+        with tf.variable_scope("losses_avg"):
+          loss_moving_avgs.append(
+              tf.get_variable(
+                  "problem_%d/total_loss" % problem_idx,
+                  initializer=100.0,
+                  trainable=False))
+      with tf.variable_scope("B2A"):
+        with tf.variable_scope("losses_avg"):
+          loss_moving_avgs.append(
+              tf.get_variable(
+                  "problem_%d/total_loss" % problem_idx,
+                  initializer=100.0,
+                  trainable=False))
+
     if fixed_problem is None:
       problem_choice = _problem_choice(hparams.problem_choice, mode,
                                        problem_count, loss_moving_avgs,
@@ -128,19 +137,32 @@ def build_input_fn(mode,
     feature_map["problem_choice"] = problem_choice
 
     # Set shapes so the ranks are clear.
-    if problem_instance.has_inputs:
-      feature_map["inputs"].set_shape([None, None, None, None])
-      feature_map["input_space_id"].set_shape([])
-    feature_map["targets"].set_shape([None, None, None, None])
+    feature_map["A"].set_shape([None, None, None, None])
+    feature_map["A_space_id"].set_shape([])
+    feature_map["A_m"].set_shape([None, None, None, None])
+    feature_map["A_hat"].set_shape([None, None, None, None])
+
+    feature_map["B"].set_shape([None, None, None, None])
+    feature_map["B_space_id"].set_shape([])
+    feature_map["B_m"].set_shape([None, None, None, None])
+    feature_map["B_hat"].set_shape([None, None, None, None])
+
     feature_map["problem_choice"].set_shape([])
-    feature_map["target_space_id"].set_shape([])
+    
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-      feature_map["infer_targets"] = feature_map["targets"]
-      #  Forced shape obfuscation is necessary for inference.
-      if problem_instance.has_inputs:
-        feature_map["inputs"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
-      feature_map["targets"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
+      if hparams.infer_mode == "A2B":
+        feature_map["infer_targets"] = feature_map["B"]
+        #  Forced shape obfuscation is necessary for inference.
+        #if problem_instance.has_inputs:
+        feature_map["A"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
+        feature_map["B"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
+      if hparams.infer_mode == "B2A":
+        feature_map["infer_targets"] = feature_map["A"]
+        #  Forced shape obfuscation is necessary for inference.
+        #if problem_instance.has_inputs:
+        feature_map["B"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
+        feature_map["A"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
 
       # This is because of a bug in the Estimator that short-circuits prediction
       # if it doesn't see a QueueRunner.  DummyQueueRunner implements the
@@ -148,7 +170,7 @@ def build_input_fn(mode,
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS, DummyQueueRunner())
       return feature_map, None
 
-    return feature_map, feature_map["targets"]
+    return feature_map, None #feature_map["B"]
 
   return input_fn
 
@@ -232,13 +254,22 @@ def features_for_problem(problem_instance,
           dataset_split=dataset_split)
 
   # Ensure inputs and targets are proper rank.
-  if problem_instance.has_inputs:
-    while len(feature_map["inputs"].get_shape()) != 4:
-      feature_map["inputs"] = tf.expand_dims(feature_map["inputs"], axis=-1)
-  while len(feature_map["targets"].get_shape()) != 4:
-    feature_map["targets"] = tf.expand_dims(feature_map["targets"], axis=-1)
+  #if problem_instance.has_inputs:
+  while len(feature_map["A"].get_shape()) != 4:
+    feature_map["A"] = tf.expand_dims(feature_map["A"], axis=-1)
+  while len(feature_map["A_m"].get_shape()) != 4:
+    feature_map["A_m"] = tf.expand_dims(feature_map["A_m"], axis=-1)
+  while len(feature_map["A_hat"].get_shape()) != 4:
+    feature_map["A_hat"] = tf.expand_dims(feature_map["A_hat"], axis=-1)
+  
+  while len(feature_map["B"].get_shape()) != 4:
+    feature_map["B"] = tf.expand_dims(feature_map["B"], axis=-1)
+  while len(feature_map["B_m"].get_shape()) != 4:
+    feature_map["B_m"] = tf.expand_dims(feature_map["B_m"], axis=-1)
+  while len(feature_map["B_hat"].get_shape()) != 4:
+    feature_map["B_hat"] = tf.expand_dims(feature_map["B_hat"], axis=-1)
 
-  if problem_instance.has_inputs:
-    feature_map["input_space_id"] = tf.constant(p_hparams.input_space_id)
-  feature_map["target_space_id"] = tf.constant(p_hparams.target_space_id)
+  #if problem_instance.has_inputs:
+  feature_map["A_space_id"] = tf.constant(p_hparams.input_space_id)
+  feature_map["B_space_id"] = tf.constant(p_hparams.target_space_id)
   return feature_map

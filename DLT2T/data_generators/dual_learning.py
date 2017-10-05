@@ -65,7 +65,22 @@ class DualLearningEnde(problem.Text2TextProblem):
   def use_subword_tokenizer(self):
     return True
 
-  def generator(self, data_dir, tmp_dir, train):
+  def generate_data(self, data_dir, tmp_dir, train_mode, task_id=-1):
+    train_paths = self.training_filepaths(
+        data_dir, self.num_shards, shuffled=False)
+    dev_paths = self.dev_filepaths(
+        data_dir, self.num_dev_shards, shuffled=False)
+    if self.use_train_shards_for_dev:
+      all_paths = train_paths + dev_paths
+      generator_utils.generate_files(
+          self.generator(data_dir, tmp_dir, True, train_mode), all_paths)
+      generator_utils.shuffle_dataset(all_paths)
+    else:
+      generator_utils.generate_dataset_and_shuffle(
+          self.generator(data_dir, tmp_dir, True, train_mode), train_paths,
+          self.generator(data_dir, tmp_dir, False, train_mode), dev_paths)
+
+  def generator(self, data_dir, tmp_dir, train, train_mode):
     symbolizer_vocab = generator_utils.get_or_generate_vocab(
         data_dir, tmp_dir, self.vocab_file, self.targeted_vocab_size)
     #symbolizer_vocab = text_encoder.SubwordTextEncoder(os.path.join(data_dir, self.vocab_file))
@@ -73,6 +88,7 @@ class DualLearningEnde(problem.Text2TextProblem):
     if train:
       return token_generator(
         train = train,
+        train_mode = train_mode,
         A_path = os.path.join(data_dir,datasets[0]),
         B_path = os.path.join(data_dir,datasets[1]),
         A_m_path = os.path.join(data_dir,datasets[2]),
@@ -84,6 +100,7 @@ class DualLearningEnde(problem.Text2TextProblem):
     else:
       return token_generator(
         train = train,
+        train_mode = None,
         A_path = os.path.join(data_dir,datasets[0]),
         B_path = os.path.join(data_dir,datasets[1]),
         token_vocab = symbolizer_vocab,
@@ -127,7 +144,7 @@ class DualLearningEnde(problem.Text2TextProblem):
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
 
-def token_generator(train, A_path, B_path, A_m_path=None, B_m_path=None, A_hat_path=None, B_hat_path=None, token_vocab=None, eos=None):
+def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=None, A_hat_path=None, B_hat_path=None, token_vocab=None, eos=None):
   '''
   Refer to token_generator in wmt.py
   Yields:
@@ -145,6 +162,20 @@ def token_generator(train, A_path, B_path, A_m_path=None, B_m_path=None, A_hat_p
           B_ints = token_vocab.encode(B.strip()) + eos_list
           yield {"A": A_ints, "B": B_ints}
           A, B = A_file.readline(), B_file.readline()
+  else if train_mode == "pretrain":
+    with tf.gfile.GFile(A_path, mode="r") as A_file:
+      with tf.gfile.GFile(B_path, mode="r") as B_file:
+        A = A_file.readline()
+        B = B_file.readline()
+        while A and B:
+          score_A = A.strip().rfind(' ')
+          score_B = B.strip().rfind(' ')
+          A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
+          B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
+          yield {'A':A_ints, 'B':B_ints}
+          A = A_file.readline()
+          B = B_file.readline()
+
   else:
     with tf.gfile.GFile(A_path, mode="r") as A_file:
       with tf.gfile.GFile(B_path, mode="r") as B_file:
