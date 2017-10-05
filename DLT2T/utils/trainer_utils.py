@@ -61,7 +61,8 @@ flags.DEFINE_string(
 flags.DEFINE_string("problems", "", "Dash separated list of problems to "
                     "solve.")
 flags.DEFINE_string("data_dir", None, "Directory with training data.")
-flags.DEFINE_string("train_mode", "pretrain","Train mode: pretrain or dualtrain.")
+flags.DEFINE_string("train_mode", "pretrain","Train mode: pretrain or dual.")
+flags.DEFINE_string("infer_mode", "A2B","Infer mode: A2B or B2A.")
 flags.DEFINE_integer("train_steps", 250000,
                      "The number of steps to run training for.")
 flags.DEFINE_bool("eval_run_autoregressive", False,
@@ -209,6 +210,7 @@ def create_experiment_components(data_dir, model_name, hparams, run_config):
   model_fn = model_builder.build_model_fn(
       model_name,
       train_mode=FLAGS.train_mode,
+      infer_mode=FLAGS.infer_mode,
       problem_names=FLAGS.problems.split("-"),
       train_steps=FLAGS.train_steps,
       worker_id=FLAGS.worker_id,
