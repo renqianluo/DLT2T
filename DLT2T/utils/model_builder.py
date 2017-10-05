@@ -419,10 +419,10 @@ def model_fn(model,
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
         for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("A2B/loss_avg_%d/%s" % (n, loss_name), loss_var)
+          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("A2B/problem_%d_frequency" % n,
+        tf.summary.scalar("problem_%d_frequency" % n,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
 
@@ -438,10 +438,10 @@ def model_fn(model,
               loss_suffix = loss_name[loss_name.index("/") + 1:]
               names_and_vars.append((loss_suffix, loss_var))
         for (loss_name, loss_var) in names_and_vars:
-          tf.summary.scalar("B2A/loss_avg_%d/%s" % (n, loss_name), loss_var)
+          tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
         with tf.variable_scope("train_stats", reuse=True):
           nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-        tf.summary.scalar("B2A/problem_%d_frequency" % n,
+        tf.summary.scalar("problem_%d_frequency" % n,
                           tf.to_float(nth_steps) /
                           (tf.to_float(global_step) + 1.0))
 
@@ -458,10 +458,10 @@ def model_fn(model,
                 loss_suffix = loss_name[loss_name.index("/") + 1:]
                 names_and_vars.append((loss_suffix, loss_var))
           for (loss_name, loss_var) in names_and_vars:
-            tf.summary.scalar("A_hat2B_m/loss_avg_%d/%s" % (n, loss_name), loss_var)
+            tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
           with tf.variable_scope("train_stats", reuse=True):
             nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-          tf.summary.scalar("A_hat2B_m/problem_%d_frequency" % n,
+          tf.summary.scalar("problem_%d_frequency" % n,
                             tf.to_float(nth_steps) /
                             (tf.to_float(global_step) + 1.0))
 
@@ -477,10 +477,10 @@ def model_fn(model,
                 loss_suffix = loss_name[loss_name.index("/") + 1:]
                 names_and_vars.append((loss_suffix, loss_var))
           for (loss_name, loss_var) in names_and_vars:
-            tf.summary.scalar("B_hat2A_m/loss_avg_%d/%s" % (n, loss_name), loss_var)
+            tf.summary.scalar("loss_avg_%d/%s" % (n, loss_name), loss_var)
           with tf.variable_scope("train_stats", reuse=True):
             nth_steps = tf.get_variable("problem_%d_steps" % n, dtype=tf.int32)
-          tf.summary.scalar("B_hat2A_m/problem_%d_frequency" % n,
+          tf.summary.scalar("problem_%d_frequency" % n,
                             tf.to_float(nth_steps) /
                             (tf.to_float(global_step) + 1.0))
 
