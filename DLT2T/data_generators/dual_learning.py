@@ -162,7 +162,8 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
           B_ints = token_vocab.encode(B.strip()) + eos_list
           yield {"A": A_ints, "B": B_ints}
           A, B = A_file.readline(), B_file.readline()
-  else if train_mode == "pretrain":
+          
+  elif train_mode == "pretrain":
     with tf.gfile.GFile(A_path, mode="r") as A_file:
       with tf.gfile.GFile(B_path, mode="r") as B_file:
         A = A_file.readline()
