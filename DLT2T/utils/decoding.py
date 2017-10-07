@@ -111,6 +111,8 @@ def decode_from_dataset(estimator,
     # Build the inference input function
     infer_input_fn = input_fn_builder.build_input_fn(
         mode=tf.estimator.ModeKeys.PREDICT,
+        train_mode=FLAGS.train_mode,
+        infer_mode=FLAGS.infer_mode,
         hparams=hparams,
         data_dir=hparams.data_dir,
         num_datashards=devices.data_parallelism().n,
