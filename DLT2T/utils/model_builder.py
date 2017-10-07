@@ -88,15 +88,17 @@ def model_fn(model,
   # Add input statistics for incoming features.
   with tf.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
-      print("##############%s" % k, v.get_shape())
+      print("input_stats %s" % k, v.get_shape())
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
         if k == "A" and is_training:
           score_extractor = tf.constant(1000000.0, shape=[])
           lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
+          lm_scores_A = tf.squeeze(lm_scores_A)
           v = v[:, :-1, :, :]
         elif k == "B" and is_training:
           score_extractor = tf.constant(1000000.0, shape=[])
           lm_scores_B = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
+          lm_scores_B = tf.squeeze(lm_scores_B)
           v = v[:, :-1, :, :]
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
@@ -205,8 +207,8 @@ def model_fn(model,
           sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
               features, skip=(skipping_is_on and skip_this_one))
 
-    lm_score_A = tf.constant(0.0)
-    lm_score_B = tf.constant(0.0)
+    #lm_score_A = tf.constant(0.0)
+    #lm_score_B = tf.constant(0.0)
 
     total_loss, ops = 0.0, []
 
@@ -313,11 +315,13 @@ def model_fn(model,
 
     total_loss = total_loss_A2B + total_loss_B2A
 
+    print("total_loss shape:", total_loss.get_shape())
+
     if train_mode == "dual":
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
       total_loss += total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
-          trade_off * (lm_decay * lm_score_A + total_loss_A2B - lm_decay * lm_score_B - total_loss_B2A) ** 2
+          trade_off * (lm_decay * lm_scores_A + total_loss_A2B - lm_decay * lm_scores_B - total_loss_B2A) ** 2
 
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
