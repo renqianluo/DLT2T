@@ -349,7 +349,7 @@ def model_fn(model,
     predictions = {
           "outputs": outputs,
           "scores": scores,
-          "inputs": features.get("inputs", None)
+          "inputs": features.get("inputs", None),
           "targets": features.get("infer_targets", None),
           "problem_choice": batched_problem_choice,
       }
