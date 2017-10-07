@@ -190,6 +190,7 @@ def create_experiment_components(data_dir, model_name, hparams, run_config):
   train_input_fn = input_fn_builder.build_input_fn(
       mode=tf.estimator.ModeKeys.TRAIN,
       train_mode=FLAGS.train_mode,
+      infer_mode=FLAGS.infer_mode,
       hparams=hparams,
       data_dir=data_dir,
       num_datashards=num_datashards,
@@ -200,6 +201,7 @@ def create_experiment_components(data_dir, model_name, hparams, run_config):
   eval_input_fn = input_fn_builder.build_input_fn(
       mode=tf.estimator.ModeKeys.EVAL,
       train_mode=FLAGS.train_mode,
+      infer_mode=FLAGS.infer_mode,
       hparams=hparams,
       data_dir=data_dir,
       num_datashards=num_datashards,

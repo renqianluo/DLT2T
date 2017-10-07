@@ -30,6 +30,7 @@ import tensorflow as tf
 
 def build_input_fn(mode,
                    train_mode,
+                   infer_mode,
                    hparams,
                    data_dir=None,
                    num_datashards=None,
@@ -154,13 +155,13 @@ def build_input_fn(mode,
     
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-      if hparams.infer_mode == "A2B":
+      if infer_mode == "A2B":
         feature_map["infer_targets"] = feature_map["B"]
         #  Forced shape obfuscation is necessary for inference.
         #if problem_instance.has_inputs:
         feature_map["A"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
         feature_map["B"]._shape = tf.TensorShape([None, None, None, None])  # pylint: disable=protected-access
-      if hparams.infer_mode == "B2A":
+      if infer_mode == "B2A":
         feature_map["infer_targets"] = feature_map["A"]
         #  Forced shape obfuscation is necessary for inference.
         #if problem_instance.has_inputs:
