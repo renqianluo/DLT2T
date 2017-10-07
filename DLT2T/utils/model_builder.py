@@ -122,16 +122,6 @@ def model_fn(model,
           tf.summary.scalar("%s_nonpadding_tokens" % k, B_m_nonpadding_tokens)
           tf.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
-        elif k == "A_hat":
-          A_hat_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, A_hat_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
-        elif k == "B_hat":
-          B_hat_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, B_hat_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
         '''
         if k == "targets":
           targets_nonpadding_tokens = nonpadding_tokens
@@ -158,10 +148,9 @@ def model_fn(model,
     if mode == tf.estimator.ModeKeys.PREDICT:
       if infer_mode == "A2B":
         with tf.variable_scope("A2B"):
-          features["inputs"] = features["A"]
-          features["targets"] = features["B"]
-          features["input_space_id"] = features["A_space_id"]
-          features["target_space_id"] = features["B_space_id"]
+          features["inputs"] = features.get("A", features["inputs"])
+          features["input_space_id"] = features.get("A_space_id", features["input_space_id"])
+          features["target_space_id"] = features.get("B_space_id", features["target_space_id"])
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -171,10 +160,9 @@ def model_fn(model,
               decode_length=decode_hp.extra_length)
       else:
         with tf.variable_scope("B2A"):
-          features["inputs"] = features["B"]
-          features["targets"] = features["A"]
-          features["input_space_id"] = features["B_space_id"]
-          features["target_space_id"] = features["A_space_id"]
+          features["inputs"] = features.get("B", features["inputs"])
+          features["input_space_id"] = features.get("B_space_id", features["target_space_id"])
+          features["target_space_id"] = features.get("A_space_id", features["input_space_id"])
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -361,13 +349,15 @@ def model_fn(model,
     predictions = {
           "outputs": outputs,
           "scores": scores,
+          "inputs": features.get("inputs", None)
           "targets": features.get("infer_targets", None),
           "problem_choice": batched_problem_choice,
       }
-    if hparams.infer_mode == "A2B":
-      predictions["inputs"] = features.get("A", None)
+    '''
+    if infer_mode == "A2B":
+      predictions["inputs"] = features.get("inputs", None)
     else:
-      predictions["inputs"] = features.get("B", None)
+      predictions["inputs"] = features.get("inputs", None)'''
          
     _del_dict_nones(predictions)
 
@@ -531,9 +521,7 @@ def model_fn(model,
   targets_nonpadding_tokens = tf.maximum(A_nonpadding_tokens, B_nonpadding_tokens)
   if train_mode == "dual":
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_m_nonpadding_tokens)
-    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_hat_nonpadding_tokens)
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_m_nonpadding_tokens)
-    targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_hat_nonpadding_tokens)
 
   max_nonpadding = tf.maximum(max_nonpadding_var, targets_nonpadding_tokens)
   with tf.control_dependencies([tf.assign(max_nonpadding_var, max_nonpadding)]):
