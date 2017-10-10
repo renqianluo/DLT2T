@@ -106,23 +106,15 @@ def model_fn(model,
         nonpadding_tokens = tf.reduce_sum(nonpadding)
         if k == "A":
           A_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, A_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
         elif k == "B":
           B_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, B_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
         elif k == "A_m":
           A_m_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, A_m_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
         elif k == "B_m":
           B_m_nonpadding_tokens = nonpadding_tokens
-          tf.summary.scalar("%s_nonpadding_tokens" % k, B_m_nonpadding_tokens)
-          tf.summary.scalar("%s_nonpadding_fraction" % k,
+
+        tf.summary.scalar("%s_nonpadding_tokens" % k, B_m_nonpadding_tokens)
+        tf.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
         '''
         if k == "targets":
@@ -182,7 +174,6 @@ def model_fn(model,
     if eval_run_autoregressive and mode == tf.estimator.ModeKeys.EVAL:
       sharded_logits, losses_dict = model_class.eval_autoregressive(features)
     else:
-
       with tf.variable_scope("A2B"):
         features["inputs"], features["targets"] = features["A"], features["B"]
         features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
@@ -357,11 +348,6 @@ def model_fn(model,
           "targets": features.get("infer_targets", None),
           "problem_choice": batched_problem_choice,
       }
-    '''
-    if infer_mode == "A2B":
-      predictions["inputs"] = features.get("inputs", None)
-    else:
-      predictions["inputs"] = features.get("inputs", None)'''
          
     _del_dict_nones(predictions)
 
