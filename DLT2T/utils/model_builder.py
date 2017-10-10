@@ -253,10 +253,10 @@ def model_fn(model,
             "problem_%d_steps" % n, initializer=0, trainable=False)
         ops.append(problem_steps.assign_add(1))
 
-    if train_mode == "dual":
-      with tf.variable_scope("A_hat2B_m"):
-        with tf.variable_scope("losses_avg"):
-          total_loss_A_hat2B_m = 0.0
+    with tf.variable_scope("A_hat2B_m"):
+      with tf.variable_scope("losses_avg"):
+        total_loss_A_hat2B_m = 0.0
+        if train_mode == "dual":
           for loss_key, loss_value in six.iteritems(losses_dict_B_m):
             loss_name = "problem_%d/%s_loss" % (n, loss_key)
             loss_moving_avg = tf.get_variable(
@@ -265,7 +265,7 @@ def model_fn(model,
             ops.append(
                 loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
             total_loss_A_hat2B_m += loss_value
-          try:  # Total loss avg might be reused or not, we try both.
+          try: # Total loss avg might be reused or not, we try both.
             with tf.variable_scope(tf.get_variable_scope(), reuse=True):
               # Total loss was already constructed on input.
               loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
@@ -274,14 +274,15 @@ def model_fn(model,
                 "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
           ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_A_hat2B_m * 0.1))
-        with tf.variable_scope("train_stats"):  # Count steps for this problem.
-          problem_steps = tf.get_variable(
-              "problem_%d_steps" % n, initializer=0, trainable=False)
-          ops.append(problem_steps.assign_add(1))
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+        ops.append(problem_steps.assign_add(1))
 
-      with tf.variable_scope("B_hat2A_m"):
-        with tf.variable_scope("losses_avg"):
-          total_loss_B_hat2A_m = 0.0
+    with tf.variable_scope("B_hat2A_m"):
+      with tf.variable_scope("losses_avg"):
+        total_loss_B_hat2A_m = 0.0
+        if train_mode == "dual":
           for loss_key, loss_value in six.iteritems(losses_dict_A_m):
             loss_name = "problem_%d/%s_loss" % (n, loss_key)
             loss_moving_avg = tf.get_variable(
@@ -290,7 +291,7 @@ def model_fn(model,
             ops.append(
                 loss_moving_avg.assign(loss_moving_avg * 0.9 + loss_value * 0.1))
             total_loss_B_hat2A_m += loss_value
-          try:  # Total loss avg might be reused or not, we try both.
+          try: # Total loss avg might be reused or not, we try both.
             with tf.variable_scope(tf.get_variable_scope(), reuse=True):
               # Total loss was already constructed on input.
               loss_moving_avg = tf.get_variable("problem_%d/total_loss" % n)
@@ -299,10 +300,10 @@ def model_fn(model,
                 "problem_%d/total_loss" % n, initializer=100.0, trainable=False)
           ops.append(
               loss_moving_avg.assign(loss_moving_avg * 0.9 + total_loss_B_hat2A_m * 0.1))
-        with tf.variable_scope("train_stats"):  # Count steps for this problem.
-          problem_steps = tf.get_variable(
-              "problem_%d_steps" % n, initializer=0, trainable=False)
-          ops.append(problem_steps.assign_add(1))
+      with tf.variable_scope("train_stats"):  # Count steps for this problem.
+        problem_steps = tf.get_variable(
+            "problem_%d_steps" % n, initializer=0, trainable=False)
+        ops.append(problem_steps.assign_add(1))
 
     total_loss = total_loss_A2B + total_loss_B2A
 
