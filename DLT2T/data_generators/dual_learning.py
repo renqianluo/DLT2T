@@ -95,6 +95,8 @@ class DualLearningEnde(problem.Text2TextProblem):
         B_m_path = os.path.join(data_dir,datasets[3]),
         A_hat_path = os.path.join(data_dir,datasets[4]),
         B_hat_path = os.path.join(data_dir,datasets[5]),
+        A_score_path = os.path.join(data_dir,datasets[6]),
+        B_score_path = os.path.join(data_dir,datasets[7]),
         token_vocab = symbolizer_vocab, 
         eos = EOS)
     else:
@@ -141,11 +143,25 @@ class DualLearningEnde(problem.Text2TextProblem):
         'B_hat': tf.VarLenFeature(tf.int64),
         'B_m': tf.VarLenFeature(tf.int64),
         'A_hat': tf.VarLenFeature(tf.int64),
+        'A_score': tf.VarLenFeature(tf.float64),
+        'B_score': tf.VarLenFeature(tf.float64),
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
 
-def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=None, A_hat_path=None, B_hat_path=None, token_vocab=None, eos=None):
+def token_generator(
+  train, 
+  train_mode, 
+  A_path, 
+  B_path, 
+  A_m_path=None, 
+  B_m_path=None, 
+  A_hat_path=None, 
+  B_hat_path=None, 
+  A_score_path=None, 
+  B_score_path=None, 
+  token_vocab=None, 
+  eos=None):
   '''
   Refer to token_generator in wmt.py
   Yields:
@@ -185,28 +201,36 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
           with tf.gfile.GFile(B_m_path, mode="r") as B_m_file:
             with tf.gfile.GFile(A_hat_path, mode="r") as A_hat_file:
               with tf.gfile.GFile(B_hat_path, mode="r") as B_hat_file:
-                A = A_file.readline()
-                B = B_file.readline()
-                A_m = A_m_file.readline()
-                B_m = B_m_file.readline()
-                A_hat = A_hat_file.readline()
-                B_hat = B_hat_file.readline()
-                while A and B and A_m and B_m and A_hat and B_hat:
-                  score_A = A.strip().rfind(' ')
-                  score_B = B.strip().rfind(' ')
-                  A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
-                  B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
-                  A_m_ints = token_vocab.encode(A_m.strip()) + eos_list
-                  B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
-                  A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
-                  B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
-                  yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints}
-                  A = A_file.readline()
-                  B = B_file.readline()
-                  A_m = A_m_file.readline()
-                  B_m = B_m_file.readline()
-                  A_hat = A_hat_file.readline()
-                  B_hat = B_hat_file.readline()
+                with tf.gfile.GFile(A_score_path, mode="r") as A_score_file:
+                  with tf.gfile.GFile(B_score_path, mode="r") as B_score_file:
+                    A = A_file.readline()
+                    B = B_file.readline()
+                    A_m = A_m_file.readline()
+                    B_m = B_m_file.readline()
+                    A_hat = A_hat_file.readline()
+                    B_hat = B_hat_file.readline()
+                    A_score = A_score_file.readline()
+                    B_score = B_score_file.readline()
+                    while A and B and A_m and B_m and A_hat and B_hat and A_score and B_score:
+                      score_A = A.strip().rfind(' ')
+                      score_B = B.strip().rfind(' ')
+                      A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
+                      B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
+                      A_m_ints = token_vocab.encode(A_m.strip()) + eos_list
+                      B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
+                      A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
+                      B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
+                      A_score = float(A_score.strip())
+                      B_score = float(B_score.strip())
+                      yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints, 'A_score':A_score, 'B_score':B_score}
+                      A = A_file.readline()
+                      B = B_file.readline()
+                      A_m = A_m_file.readline()
+                      B_m = B_m_file.readline()
+                      A_hat = A_hat_file.readline()
+                      B_hat = B_hat_file.readline()
+                      A_score = A_score_file.readline()
+                      B_score = B_score_file.readline()
     
 
 
@@ -217,6 +241,8 @@ _DUAL_ENDE_TRAIN_DATASETS = [
   'mono_ende.de',
   'infer_ende.en',
   'infer_ende.de',
+  'parallel_ende_score.en',
+  'parallel_ende_score.de',
 ]
 
 _DUAL_ENDE_TEST_DATASETS = [

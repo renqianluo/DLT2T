@@ -90,20 +90,6 @@ def model_fn(model,
     for (k, v) in six.iteritems(features):
       print("input_stats %s" % k, v.get_shape())
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
-        if k == "A" and is_training and train_mode == "dual":
-          print("################yes, k==A and get lm_scores_A")
-          score_extractor = tf.constant(1000000.0, shape=[])
-          lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
-          lm_scores_A = tf.squeeze(lm_scores_A)
-          v = v[:, :-1, :, :]
-          print(lm_scores_A)
-        elif k == "B" and is_training and train_mode == "dual":
-          print("################yes, k==B and get lm_scores_B")
-          score_extractor = tf.constant(1000000.0, shape=[])
-          lm_scores_B = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
-          lm_scores_B = tf.squeeze(lm_scores_B)
-          v = v[:, :-1, :, :]
-          print(lm_scores_B)
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // dp.n)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
         nonpadding = tf.to_float(tf.not_equal(v, 0))
@@ -346,6 +332,8 @@ def model_fn(model,
     total_loss = total_loss_A2B + total_loss_B2A
 
     if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
+      lm_scores_A = features["A_score"]
+      lm_scores_B = features["B_score"]
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
       print("total_loss shape:", total_loss.get_shape())

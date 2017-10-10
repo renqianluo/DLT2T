@@ -164,6 +164,8 @@ def build_input_fn(mode,
         feature_map["A_hat"].set_shape([None, None, None, None])       
         feature_map["B_m"].set_shape([None, None, None, None])
         feature_map["B_hat"].set_shape([None, None, None, None])
+        feature_map["A_score"].set_shape([None, None])
+        feature_map["B_score"].set_shape([None, None])
 
     feature_map["problem_choice"].set_shape([])
     
