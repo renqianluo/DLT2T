@@ -307,7 +307,7 @@ def model_fn(model,
       with tf.variable_scope("A_hat2B_m"):
         with tf.variable_scope("losses_avg"):
           losses_dict_B_m = {"extra":0.0, "training":0.0}
-          for loss_key, loss_value in six.iteritems(losses_dict_A_m):
+          for loss_key, loss_value in six.iteritems(losses_dict_B_m):
             loss_name = "problem_%d/%s_loss" % (n, loss_key)
             loss_moving_avg = tf.get_variable(
                 loss_name, initializer=100.0, trainable=False)
@@ -323,8 +323,8 @@ def model_fn(model,
               "problem_%d_steps" % n, initializer=0, trainable=False)
       with tf.variable_scope("B_hat2A_m"):
         with tf.variable_scope("losses_avg"):
-          losses_dict_B_m = {"extra":0.0, "training":0.0}
-          for loss_key, loss_value in six.iteritems(losses_dict_B_m):
+          losses_dict_A_m = {"extra":0.0, "training":0.0}
+          for loss_key, loss_value in six.iteritems(losses_dict_A_m):
             loss_name = "problem_%d/%s_loss" % (n, loss_key)
             loss_moving_avg = tf.get_variable(
                 loss_name, initializer=100.0, trainable=False)
