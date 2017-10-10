@@ -143,8 +143,8 @@ class DualLearningEnde(problem.Text2TextProblem):
         'B_hat': tf.VarLenFeature(tf.int64),
         'B_m': tf.VarLenFeature(tf.int64),
         'A_hat': tf.VarLenFeature(tf.int64),
-        'A_score': tf.VarLenFeature(tf.float64),
-        'B_score': tf.VarLenFeature(tf.float64),
+        'A_score': tf.VarLenFeature(tf.float32),
+        'B_score': tf.VarLenFeature(tf.float32),
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
