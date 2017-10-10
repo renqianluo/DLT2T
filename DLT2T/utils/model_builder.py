@@ -90,12 +90,12 @@ def model_fn(model,
     for (k, v) in six.iteritems(features):
       print("input_stats %s" % k, v.get_shape())
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
-        if k == "A" and is_training:
+        if k == "A" and is_training and train_mode == "dual":
           score_extractor = tf.constant(1000000.0, shape=[])
           lm_scores_A = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
           lm_scores_A = tf.squeeze(lm_scores_A)
           v = v[:, :-1, :, :]
-        elif k == "B" and is_training:
+        elif k == "B" and is_training and train_mode == "dual":
           score_extractor = tf.constant(1000000.0, shape=[])
           lm_scores_B = (tf.to_float(v)[:, -1, :, :] - score_extractor) / score_extractor
           lm_scores_B = tf.squeeze(lm_scores_B)
@@ -179,14 +179,14 @@ def model_fn(model,
         features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
         sharded_logits_B, losses_dict_B = model_class.model_fn(
             features, skip=(skipping_is_on and skip_this_one))
-        if train_mode == "dual":
+        if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
           tf.get_variable_scope().reuse_variables()
           features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
           features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
           sharded_logits_B_m, losses_dict_B_m = model_class.model_fn(
               features, skip=(skipping_is_on and skip_this_one))
 
-      with tf.variable_scope("B2A"):
+      with mode == tf.estimator.ModeKeys.TRAIN and tf.variable_scope("B2A"):
         features["inputs"], features["targets"] = features["B"], features["A"]
         features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
         sharded_logits_A, losses_dict_A = model_class.model_fn(
@@ -253,7 +253,7 @@ def model_fn(model,
             "problem_%d_steps" % n, initializer=0, trainable=False)
         ops.append(problem_steps.assign_add(1))
 
-    if train_mode == "dual":
+    if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
       with tf.variable_scope("A_hat2B_m"):
         with tf.variable_scope("losses_avg"):
           total_loss_A_hat2B_m = 0.0 
@@ -341,7 +341,7 @@ def model_fn(model,
 
     total_loss = total_loss_A2B + total_loss_B2A
 
-    if train_mode == "dual":
+    if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
       print("total_loss shape:", total_loss.get_shape())
@@ -349,13 +349,13 @@ def model_fn(model,
       total_loss=tf.Print(total_loss, [total_loss, tf.shape(total_loss)])
       lm_scores_A=tf.Print(lm_scores_A, [lm_scores_A, tf.shape(lm_scores_A)])
       total_loss += total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
-          trade_off * (lm_decay * lm_scores_A + total_loss_A2B - lm_decay * lm_scores_B - total_loss_B2A) ** 2
+          trade_off * (lm_decay * tf.reduce_mean(lm_scores_A, 0) + total_loss_A2B - lm_decay * tf.reduce_mean(lm_scores_B, 0) - total_loss_B2A) ** 2
 
     with tf.control_dependencies(ops):  # Make sure the ops run.
       # Ensure the loss is a scalar here.
       total_loss = tf.reshape(total_loss, [], name="total_loss_control_id")
 
-    if train_mode == "dual":
+    if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
       return [total_loss, [tf.concat(sharded_logits_B, 0), tf.concat(sharded_logits_A, 0), 
                           tf.concat(sharded_logits_B_m, 0), tf.concat(sharded_logits_A_m, 0)]]
     else:
