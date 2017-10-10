@@ -161,7 +161,6 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
         while A and B:
           A_ints = token_vocab.encode(A.strip()) + eos_list
           B_ints = token_vocab.encode(B.strip()) + eos_list
-          print(A_ints, B_ints)
           yield {"A": A_ints, "B": B_ints}
           A, B = A_file.readline(), B_file.readline()
           

@@ -341,14 +341,13 @@ def model_fn(model,
 
     total_loss = total_loss_A2B + total_loss_B2A
 
-    print("total_loss shape:", total_loss.get_shape())
-    print("lm_scores shape:", lm_scores_A.get_shape())
-    total_loss=tf.Print(total_loss, [total_loss, tf.shape(total_loss)])
-    lm_scores_A=tf.Print(lm_scores_A, [lm_scores_A, tf.shape(lm_scores_A)])
-
     if train_mode == "dual":
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
+      print("total_loss shape:", total_loss.get_shape())
+      print("lm_scores shape:", lm_scores_A.get_shape())
+      total_loss=tf.Print(total_loss, [total_loss, tf.shape(total_loss)])
+      lm_scores_A=tf.Print(lm_scores_A, [lm_scores_A, tf.shape(lm_scores_A)])
       total_loss += total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
           trade_off * (lm_decay * lm_scores_A + total_loss_A2B - lm_decay * lm_scores_B - total_loss_B2A) ** 2
 
