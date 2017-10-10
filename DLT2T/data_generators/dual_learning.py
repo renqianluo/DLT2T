@@ -175,7 +175,6 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
           score_B = B.strip().rfind(' ')
           A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
           B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
-          print(A_ints, B_ints)
           yield {'A':A_ints, 'B':B_ints}
           A = A_file.readline()
           B = B_file.readline()
@@ -203,7 +202,6 @@ def token_generator(train, train_mode, A_path, B_path, A_m_path=None, B_m_path=N
                   A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
                   B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
                   yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints}
-                  print(A_ints, B_ints, A_m_ints, B_m_ints, A_hat_ints, B_hat_ints)
                   A = A_file.readline()
                   B = B_file.readline()
                   A_m = A_m_file.readline()

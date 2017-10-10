@@ -121,6 +121,20 @@ def build_input_fn(mode,
                   "problem_%d/total_loss" % problem_idx,
                   initializer=100.0,
                   trainable=False))
+      with tf.variable_scope("A_hat2B_m"):
+        with tf.variable_scope("losses_avg"):
+          loss_moving_avgs.append(
+              tf.get_variable(
+                  "problem_%d/total_loss" % problem_idx,
+                  initializer=100.0,
+                  trainable=False))
+      with tf.variable_scope("B_hat2A_m"):
+        with tf.variable_scope("losses_avg"):
+          loss_moving_avgs.append(
+              tf.get_variable(
+                  "problem_%d/total_loss" % problem_idx,
+                  initializer=100.0,
+                  trainable=False))
 
     if fixed_problem is None:
       problem_choice = _problem_choice(hparams.problem_choice, mode,
