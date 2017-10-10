@@ -113,7 +113,7 @@ def model_fn(model,
         elif k == "B_m":
           B_m_nonpadding_tokens = nonpadding_tokens
 
-        tf.summary.scalar("%s_nonpadding_tokens" % k, B_m_nonpadding_tokens)
+        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
         tf.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
         '''
