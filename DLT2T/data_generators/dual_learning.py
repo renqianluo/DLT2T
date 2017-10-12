@@ -34,8 +34,10 @@ import tensorflow as tf
 # End-of-sentence marker.
 EOS = text_encoder.EOS_ID
 
+FLAGS = tf.flags.FLAGS
+
 @registry.register_problem
-class DualLearningEnde(problem.Text2TextProblem):
+class DuallearningEnde(problem.Text2TextProblem):
 
   @property
   def is_character_level(self):

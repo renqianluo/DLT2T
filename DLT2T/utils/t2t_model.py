@@ -444,7 +444,7 @@ class T2TModel(object):
                                                        0))
     return sharded_features
 
-  def model_fn(self, features, skip=False, last_position_only=False):
+  def model_fn(self, features, skip=False, last_position_only=False, reduce_sum=True):
     """Computes the entire model and produces sharded logits and losses.
 
     Args:
@@ -516,7 +516,7 @@ class T2TModel(object):
         sharded_logits = target_modality.top_sharded(
             body_outputs, sharded_features["targets"], self._data_parallelism)
         training_loss = target_modality.loss_sharded(
-            sharded_logits, sharded_features["targets"], self._data_parallelism)
+            sharded_logits, sharded_features["targets"], self._data_parallelism, reduce_sum)
 
         training_loss *= self._problem_hparams.loss_multiplier
       else:

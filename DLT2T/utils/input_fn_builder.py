@@ -107,34 +107,37 @@ def build_input_fn(mode,
     # We choose which problem to process.
     loss_moving_avgs = []  # Need loss moving averages for that.
     for problem_idx in xrange(problem_count):
-      with tf.variable_scope("A2B"):
-        with tf.variable_scope("losses_avg"):
-          loss_moving_avgs.append(
-              tf.get_variable(
-                  "problem_%d/total_loss" % problem_idx,
-                  initializer=100.0,
-                  trainable=False))
-      with tf.variable_scope("B2A"):
-        with tf.variable_scope("losses_avg"):
-          loss_moving_avgs.append(
-              tf.get_variable(
-                  "problem_%d/total_loss" % problem_idx,
-                  initializer=100.0,
-                  trainable=False))
-      with tf.variable_scope("A_hat2B_m"):
-        with tf.variable_scope("losses_avg"):
-          loss_moving_avgs.append(
-              tf.get_variable(
-                  "problem_%d/total_loss" % problem_idx,
-                  initializer=100.0,
-                  trainable=False))
-      with tf.variable_scope("B_hat2A_m"):
-        with tf.variable_scope("losses_avg"):
-          loss_moving_avgs.append(
-              tf.get_variable(
-                  "problem_%d/total_loss" % problem_idx,
-                  initializer=100.0,
-                  trainable=False))
+      if train_mode == "pretrain_A2B" or train_mode == "dual":
+        with tf.variable_scope("A2B"):
+          with tf.variable_scope("losses_avg"):
+            loss_moving_avgs.append(
+                tf.get_variable(
+                    "problem_%d/total_loss" % problem_idx,
+                    initializer=100.0,
+                    trainable=False))
+      if train_mode == "pretrain_B2A" or train_mode == "dual":
+        with tf.variable_scope("B2A"):
+          with tf.variable_scope("losses_avg"):
+            loss_moving_avgs.append(
+                tf.get_variable(
+                    "problem_%d/total_loss" % problem_idx,
+                    initializer=100.0,
+                    trainable=False))
+      if train_mode == "dual":
+        with tf.variable_scope("A_hat2B_m"):
+          with tf.variable_scope("losses_avg"):
+            loss_moving_avgs.append(
+                tf.get_variable(
+                    "problem_%d/total_loss" % problem_idx,
+                    initializer=100.0,
+                    trainable=False))
+        with tf.variable_scope("B_hat2A_m"):
+          with tf.variable_scope("losses_avg"):
+            loss_moving_avgs.append(
+                tf.get_variable(
+                    "problem_%d/total_loss" % problem_idx,
+                    initializer=100.0,
+                    trainable=False))
 
     if fixed_problem is None:
       problem_choice = _problem_choice(hparams.problem_choice, mode,
@@ -158,14 +161,13 @@ def build_input_fn(mode,
     feature_map["B"].set_shape([None, None, None, None])
     feature_map["B_space_id"].set_shape([])
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
-      if train_mode == "dual":
-        feature_map["A_m"].set_shape([None, None, None, None])
-        feature_map["A_hat"].set_shape([None, None, None, None])       
-        feature_map["B_m"].set_shape([None, None, None, None])
-        feature_map["B_hat"].set_shape([None, None, None, None])
-        feature_map["A_score"].set_shape([None, None])
-        feature_map["B_score"].set_shape([None, None])
+    if mode == tf.estimator.ModeKeys.TRAIN and train_mode == "dual":
+      feature_map["A_m"].set_shape([None, None, None, None])
+      feature_map["A_hat"].set_shape([None, None, None, None])       
+      feature_map["B_m"].set_shape([None, None, None, None])
+      feature_map["B_hat"].set_shape([None, None, None, None])
+      feature_map["A_score"].set_shape([None])
+      feature_map["B_score"].set_shape([None])
 
     feature_map["problem_choice"].set_shape([])
     
@@ -189,8 +191,12 @@ def build_input_fn(mode,
       # minimal expected interface but does nothing.
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS, DummyQueueRunner())
       return feature_map, None
-
-    return feature_map, None #feature_map["B"]
+    
+    if train_mode == "pretrain_A2B":
+      return feature_map, feature_map["B"]
+    elif train_mode == "pretrain_B2A":
+      return feature_map, feature_map["A"]
+    return feature_map, None
 
   return input_fn
 

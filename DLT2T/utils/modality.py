@@ -146,19 +146,31 @@ class Modality(object):
     """
     return data_parallelism(self.top, sharded_body_output, sharded_targets)
 
-  def loss(self, top_out, targets, weights_fn=common_layers.weights_nonzero):
+  def loss(self, top_out, targets, reduce_sum, weights_fn=common_layers.weights_nonzero):
     """Compute loss numerator and denominator for one shard of output."""
     logits = top_out
     return common_layers.padded_cross_entropy(
         logits,
         targets,
         self._model_hparams.label_smoothing,
-        weights_fn=weights_fn)
+        weights_fn=weights_fn,
+        reduce_sum=reduce_sum)
 
-  def loss_sharded(self, sharded_top_out, sharded_targets, data_parallelism):
+  def loss_sharded(self, sharded_top_out, sharded_targets, data_parallelism, reduce_sum=True):
     """Compute loss for all shards."""
     sharded_loss_num, sharded_loss_den = data_parallelism(
-        self.loss, sharded_top_out, sharded_targets)
-    loss = tf.add_n(sharded_loss_num) / tf.maximum(1.0,
+        self.loss, sharded_top_out, sharded_targets, reduce_sum)
+    if reduce_sum:
+      loss = tf.add_n(sharded_loss_num) / tf.maximum(1.0,
                                                    tf.add_n(sharded_loss_den))
-    return loss
+      return loss
+    else:
+      sharded_scalar_loss_num = [tf.reduce_sum(i) for i in sharded_loss_num]
+      sharded_scalar_loss_den = [tf.reduce_sum(i) for i in sharded_loss_den]
+      scalar_loss = tf.add_n(sharded_scalar_loss_num) / tf.maximum(1.0,
+                                                   tf.add_n(sharded_scalar_loss_den))
+      loss_num = tf.concat(tf.reduce_sum(sharded_loss_num, [1,2,3]), 0)
+      loss_den = tf.concat(tf.reduce_sum(sharded_loss_den, [1,2,3]), 0)
+      #print(sharded_loss_num.get_shape(), sharded_loss_den.get_shape())
+      loss = loss_num / tf.maximum(tf.ones(tf.shape(loss_den), loss_den))
+      return [scalar_loss, loss]
