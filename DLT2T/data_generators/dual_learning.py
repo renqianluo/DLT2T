@@ -182,7 +182,7 @@ def token_generator(
           yield {"A": A_ints, "B": B_ints}
           A, B = A_file.readline(), B_file.readline()
           
-  elif train_mode == "pretrain":
+  elif train_mode.startswith("pretrain"):
     with tf.gfile.GFile(A_path, mode="r") as A_file:
       with tf.gfile.GFile(B_path, mode="r") as B_file:
         A = A_file.readline()
