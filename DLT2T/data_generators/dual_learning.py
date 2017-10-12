@@ -186,10 +186,8 @@ def token_generator(
         A = A_file.readline()
         B = B_file.readline()
         while A and B:
-          score_A = A.strip().rfind(' ')
-          score_B = B.strip().rfind(' ')
-          A_ints = token_vocab.encode(A.strip()[:score_A]) + eos_list + [int(float(A.strip()[score_A:]) * 1000000 + 1000000) ]
-          B_ints = token_vocab.encode(B.strip()[:score_B]) + eos_list + [int(float(B.strip()[score_B:]) * 1000000 + 1000000) ]
+          A_ints = token_vocab.encode(A.strip()) + eos_list
+          B_ints = token_vocab.encode(B.strip()) + eos_list
           yield {'A':A_ints, 'B':B_ints}
           A = A_file.readline()
           B = B_file.readline()
