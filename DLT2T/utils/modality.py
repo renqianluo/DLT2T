@@ -169,9 +169,12 @@ class Modality(object):
       sharded_scalar_loss_den = [tf.reduce_sum(i) for i in sharded_loss_den]
       scalar_loss = tf.add_n(sharded_scalar_loss_num) / tf.maximum(1.0,
                                                    tf.add_n(sharded_scalar_loss_den))
-      loss_num = tf.concat(tf.reduce_sum(sharded_loss_num, [1,2,3]), 0)
-      loss_den = tf.concat(tf.reduce_sum(sharded_loss_den, [1,2,3]), 0)
-      print(loss_num.get_shape(), loss_den.get_shape())
+
+      loss_num = tf.concat(sharded_loss_num, 0)
+      loss_den = tf.concat(sharded_loss_den, 0)
+      loss_num = tf.reduce_sum(loss_num, [1,2,3])
+      loss_den = tf.reduce_sum(loss_den, [1,2,3])
+      
       loss_num = tf.Print(loss_num, [loss_num])
       loss_den = tf.Print(loss_den, [loss_den])
       loss = loss_num / tf.maximum(tf.ones(tf.shape(loss_den), loss_den))
