@@ -369,8 +369,8 @@ def model_fn(model,
       total_loss = total_loss_B2A
     else: #train_mode == "dual"
       total_loss = total_loss_A2B + total_loss_B2A
-      lm_scores_A = features["A_score"]
-      lm_scores_B = features["B_score"]
+      lm_scores_A = tf.squeeze(features["A_score"])
+      lm_scores_B = tf.squeeze(features["B_score"])
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
       A2B_loss_value = tf.Print(A2B_loss_value, [A2B_loss_value, tf.shape(A2B_loss_value)])

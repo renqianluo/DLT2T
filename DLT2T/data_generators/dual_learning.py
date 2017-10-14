@@ -218,8 +218,8 @@ def token_generator(
                       B_m_ints = token_vocab.encode(B_m.strip()) + eos_list
                       A_hat_ints = token_vocab.encode(A_hat.strip()) + eos_list
                       B_hat_ints = token_vocab.encode(B_hat.strip()) + eos_list
-                      A_score = float(A_score.strip())
-                      B_score = float(B_score.strip())
+                      A_score = [float(A_score.strip())]
+                      B_score = [float(B_score.strip())]
                       yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints, 'A_score':A_score, 'B_score':B_score}
                       A = A_file.readline()
                       B = B_file.readline()
