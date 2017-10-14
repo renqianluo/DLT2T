@@ -520,7 +520,7 @@ class T2TModel(object):
 
         if reduce_sum:
           training_loss *= self._problem_hparams.loss_multiplier
-        else：
+        else:
           training_loss[0] *= self._problem_hparams.loss_multiplier
           training_loss[1] *= self._problem_hparams.loss_multiplier
       else:
