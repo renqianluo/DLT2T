@@ -223,13 +223,19 @@ def token_generator(
                       yield {'A':A_ints, 'B':B_ints, 'A_m':A_m_ints, 'B_m':B_m_ints, 'A_hat':A_hat_ints, 'B_hat':B_hat_ints, 'A_score':A_score, 'B_score':B_score}
                       A = A_file.readline()
                       B = B_file.readline()
-                      A_m = A_m_file.readline()
-                      B_m = B_m_file.readline()
-                      A_hat = A_hat_file.readline()
-                      B_hat = B_hat_file.readline()
+                      A_m = read_mono_sentence(A_m_file)
+                      B_m = read_mono_sentence(B_m_file)
+                      A_hat = read_mono_sentence(A_hat_file)
+                      B_hat = read_mono_sentence(B_hat_file)
                       A_score = A_score_file.readline()
                       B_score = B_score_file.readline()
     
+def read_mono_sentence(mono_file):
+  line = mono_file.readline()
+  if not line:
+    mono_file.seek(0)
+    line = mono_file.readline()
+  return line
 
 
 _DUAL_ENDE_TRAIN_DATASETS = [
