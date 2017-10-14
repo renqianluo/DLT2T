@@ -367,13 +367,16 @@ def model_fn(model,
       total_loss = total_loss_A2B
     elif train_mode == "pretrain_B2A":
       total_loss = total_loss_B2A
-    else: #to modify here
+    else: #train_mode == "dual"
       total_loss = total_loss_A2B + total_loss_B2A
       lm_scores_A = features["A_score"]
       lm_scores_B = features["B_score"]
       lm_decay = tf.constant(0.3)
       trade_off = tf.constant(0.01)
+      A2B_loss_value = tf.Print(A2B_loss_value, [A2B_loss_value, tf.shape(A2B_loss_value)])
+      lm_scores_A = tf.Print(lm_scores_A, [lm_scores_A, tf.shape(lm_scores_A)])
       consistence_loss = (lm_decay * lm_scores_A + A2B_loss_value - lm_decay * lm_scores_B - B2A_loss_value) ** 2
+      consistence_loss = tf.Print(consistence_loss, [consistence_loss, tf.shape(consistence_loss)])
       consistence_loss = tf.reduce_mean(consistence_loss)
       total_loss = total_loss_A2B + total_loss_B2A + \
           total_loss_A_hat2B_m + total_loss_B_hat2A_m + \
