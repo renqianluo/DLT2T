@@ -184,7 +184,7 @@ def model_fn(model,
           features["inputs"], features["targets"] = features["A"], features["B"]
           features["input_space_id"], features["target_space_id"] = features["A_space_id"], features["B_space_id"]
           sharded_logits_B, losses_dict_B = model_class.model_fn(
-              features, skip=(skipping_is_on and skip_this_one), reduce_mean=False)
+              features, skip=(skipping_is_on and skip_this_one), reduce_sum=False)
         #DUL
         with tf.variable_scope("A2B", reuse=True):
           features["inputs"], features["targets"] = features["A_hat"], features["B_m"]
@@ -196,7 +196,7 @@ def model_fn(model,
           features["inputs"], features["targets"] = features["B"], features["A"]
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           sharded_logits_A, losses_dict_A = model_class.model_fn(
-              features, skip=(skipping_is_on and skip_this_one), reduce_mean=False)
+              features, skip=(skipping_is_on and skip_this_one), reduce_sum=False)
         #DUL
         with tf.variable_scope("B2A", reuse=True):
           features["inputs"], features["targets"] = features["B_hat"], features["A_m"]
