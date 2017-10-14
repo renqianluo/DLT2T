@@ -178,5 +178,5 @@ class Modality(object):
       loss_den = tf.reduce_sum(loss_den, [1,2,3])
       loss_num = tf.Print(loss_num, [loss_num])
       loss_den = tf.Print(loss_den, [loss_den])
-      loss = loss_num / tf.maximum(tf.ones(tf.shape(loss_den), loss_den))
+      loss = loss_num / tf.maximum(tf.ones(tf.shape(loss_den)), loss_den)
       return [scalar_loss, loss]
