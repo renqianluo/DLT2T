@@ -174,5 +174,6 @@ class Modality(object):
       loss_den = tf.concat(sharded_loss_den, 0)
       loss_num = tf.reduce_sum(loss_num, [1,2,3])
       loss_den = tf.reduce_sum(loss_den, [1,2,3])
+      loss_num = tf.Print(loss_num, [loss_num, tf.shape(loss_num)])
       loss = loss_num / tf.maximum(tf.ones(tf.shape(loss_den)), loss_den)
       return [scalar_loss, loss]
