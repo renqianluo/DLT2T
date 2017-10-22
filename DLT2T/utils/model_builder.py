@@ -36,6 +36,7 @@ from DLT2T.utils import input_fn_builder
 from DLT2T.utils import metrics
 from DLT2T.utils import registry
 from DLT2T.utils import yellowfin
+from DLT2T.data_generators import problem
 
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
