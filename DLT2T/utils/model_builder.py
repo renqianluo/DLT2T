@@ -102,16 +102,12 @@ def model_fn(model,
           A_m_nonpadding_tokens = nonpadding_tokens
         elif k == "B_m":
           B_m_nonpadding_tokens = nonpadding_tokens
-
+        elif k == "targets":
+          targets_nonpadding_tokens = nonpadding_tokens
+        
         tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
         tf.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
-        '''
-        if k == "targets":
-          targets_nonpadding_tokens = nonpadding_tokens
-        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))'''
 
   # Get multi-problem logits and loss based on features["problem_choice"].
   loss_variable_names = []
@@ -132,7 +128,6 @@ def model_fn(model,
     if mode == tf.estimator.ModeKeys.PREDICT:
       if infer_mode == "A2B":
         with tf.variable_scope("A2B"):
-          #features["inputs"] = features.get("A", features.get("inputs", None))
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -142,8 +137,9 @@ def model_fn(model,
               decode_length=decode_hp.extra_length)
       else:
         with tf.variable_scope("B2A"):
-          #features["inputs"] = features.get("B", features.get("inputs", None))
           features["input_space_id"], features["target_space_id"] = features["target_space_id"], features["input_space_id"]
+          features["input_space_id"] = tf.Print(features["input_space_id"], [features["input_space_id"]])
+          features["target_space_id"] = tf.Print(features["target_space_id"], [features["target_space_id"]])
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
