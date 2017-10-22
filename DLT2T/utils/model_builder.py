@@ -132,9 +132,7 @@ def model_fn(model,
     if mode == tf.estimator.ModeKeys.PREDICT:
       if infer_mode == "A2B":
         with tf.variable_scope("A2B"):
-          features["inputs"] = features.get("A", features.get("inputs", None))
-          features["input_space_id"] = features.get("A_space_id", features.get("input_space_id", None))
-          features["target_space_id"] = features.get("B_space_id", features.get("target_space_id", None))
+          #features["inputs"] = features.get("A", features.get("inputs", None))
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -144,9 +142,8 @@ def model_fn(model,
               decode_length=decode_hp.extra_length)
       else:
         with tf.variable_scope("B2A"):
-          features["inputs"] = features.get("B", features.get("inputs", None))
-          features["input_space_id"] = features.get("B_space_id", features.get("target_space_id", None))
-          features["target_space_id"] = features.get("A_space_id", features.get("input_space_id", None))
+          #features["inputs"] = features.get("B", features.get("inputs", None))
+          features["input_space_id"], features["target_space_id"] = features["target_space_id"], features["input_space_id"]
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
