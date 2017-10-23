@@ -131,7 +131,8 @@ class DuallearningEnde(problem.Text2TextProblem):
       examples['B_hat'] = examples['B_hat'][:max_seq_length]
       examples['B_m'] = examples['B_m'][:max_seq_length]
       examples['A_hat'] = examples['A_hat'][:max_seq_length]
-
+    else:
+      print("######################## It is NOT invoked!!", max_seq_length)
     '''
     if hparams.prepend_mode != "none":
       examples["targets"] = tf.concat(
