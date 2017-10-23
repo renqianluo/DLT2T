@@ -62,7 +62,7 @@ flags.DEFINE_string("problems", "", "Dash separated list of problems to "
                     "solve.")
 flags.DEFINE_string("data_dir", None, "Directory with training data.")
 flags.DEFINE_string("train_mode", None,"Train mode: pretrain_A2B, pretrian_B2A, or dual.")
-flags.DEFINE_string("infer_mode", "A2B","Infer mode: A2B or B2A.")
+flags.DEFINE_string("infer_mode", None,"Infer mode: A2B or B2A.")
 flags.DEFINE_integer("train_steps", 250000,
                      "The number of steps to run training for.")
 flags.DEFINE_bool("eval_run_autoregressive", False,
