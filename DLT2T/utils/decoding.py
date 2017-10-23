@@ -207,7 +207,7 @@ def decode_from_file(estimator, filename, decode_hp, decode_to_file=None):
   problem_name = FLAGS.problems.split("-")[problem_id]
   tf.logging.info("Performing decoding from a file.")
   sorted_inputs, sorted_keys = _get_sorted_inputs(filename, decode_hp.shards,
-                                                  decode_hparams.delimiter)
+                                                  decode_hp.delimiter)
   num_decode_batches = (len(sorted_inputs) - 1) // decode_hp.batch_size + 1
 
   def input_fn():
@@ -255,7 +255,7 @@ def decode_from_file(estimator, filename, decode_hp, decode_to_file=None):
   tf.logging.info("Writing decodes into %s" % decode_filename)
   outfile = tf.gfile.Open(decode_filename, "w")
   for index in range(len(sorted_inputs)):
-    outfile.write("%s\n" % (decodes[sorted_keys[index]], decode_hparams.delimiter))
+    outfile.write("%s\n" % (decodes[sorted_keys[index]], decode_hp.delimiter))
 
 
 def _decode_filename(base_filename, problem_name, decode_hp):
