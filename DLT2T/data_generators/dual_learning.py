@@ -110,7 +110,7 @@ class DuallearningEnde(problem.Text2TextProblem):
         token_vocab = symbolizer_vocab,
         eos=EOS)
 
-  def preprocess_examples(self, examples, mode, hparams):
+  def preprocess_example(self, examples, mode, hparams):
     del mode
     max_seq_length = min(max(hparams.max_input_seq_length,0),max(hparams.max_target_seq_length,0))
     '''
