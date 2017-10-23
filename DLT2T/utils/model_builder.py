@@ -168,7 +168,7 @@ def model_fn(model,
       elif train_mode == "pretrain_B2A":
         with tf.variable_scope("B2A"):
           features["inputs"], features["targets"] = features["B"], features["A"]
-          features["inputs"] = tf.Print(features["intpus"], [features["inputs"]])
+          features["inputs"] = tf.Print(features["inputs"], [features["inputs"]])
           features["targets"] = tf.Print(features["targets"], [features["targets"]])
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           features["input_space_id"] = tf.Print(features["input_space_id"], [features["input_space_id"]])
