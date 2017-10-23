@@ -644,7 +644,7 @@ def build_model_fn(model, **kwargs):
     hparams = copy.deepcopy(params)
     del params
 
-    if labels is not None:
+    #if labels is not None:
     #  if FLAGS.train_mode == "pretrain_B2A":
     #    features["A"] = labels
     #  elif FLAGS.train_mode == "pretrain_A2B":
