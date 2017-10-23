@@ -139,7 +139,7 @@ def model_fn(model,
               last_position_only=decode_hp.use_last_position_only,
               alpha=decode_hp.alpha,
               decode_length=decode_hp.extra_length)
-      else:
+      elif infer_mode == "B2A":
         with tf.variable_scope("B2A"):
           features["inputs"] = features.get("B", features["inputs"])
           features["input_space_id"] = features.get("B_space_id", features["target_space_id"])
@@ -151,6 +151,8 @@ def model_fn(model,
               last_position_only=decode_hp.use_last_position_only,
               alpha=decode_hp.alpha,
               decode_length=decode_hp.extra_length)
+      else:
+        raise ValueError("Unrecognized infer_mode:%s" % infer_mode)
     # In distributed mode, we build graph for problem=0 and problem=worker_id.
     skipping_is_on = hparams.problem_choice == "distributed" and is_training
     problem_worker_id = worker_id % len(hparams.problems)
@@ -175,7 +177,7 @@ def model_fn(model,
           sharded_logits_A, losses_dict_A = model_class.model_fn(
               features, skip=(skipping_is_on and skip_this_one))
             
-      else:
+      elif train_mode == "dual":
         #DSL
         with tf.variable_scope("A2B"):
           features["inputs"], features["targets"] = features["A"], features["B"]
@@ -200,6 +202,8 @@ def model_fn(model,
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           sharded_logits_A_m, losses_dict_A_m = model_class.model_fn(
               features, skip=(skipping_is_on and skip_this_one))
+      else:
+        raise ValueError("Unrecognized infer_mode:%s" % train_mode)
 
     total_loss, ops = 0.0, []
 
@@ -256,6 +260,7 @@ def model_fn(model,
           ops.append(problem_steps.assign_add(1))
 
     else: # train_mode == "dual"
+      assert train_mode == "dual", "train mode is unknown"
       with tf.variable_scope("A2B"):
         with tf.variable_scope("losses_avg"):
           total_loss_A2B = 0.0
@@ -365,6 +370,7 @@ def model_fn(model,
     elif train_mode == "pretrain_B2A":
       total_loss = total_loss_B2A
     else: #train_mode == "dual"
+      assert train_mode == "dual", "train mode is unknown"
       total_loss = total_loss_A2B + total_loss_B2A
       lm_scores_A = tf.squeeze(features["A_score"])
       lm_scores_B = tf.squeeze(features["B_score"])
@@ -384,10 +390,12 @@ def model_fn(model,
       return [total_loss, tf.concat(sharded_logits_B, 0)]
     elif train_mode == "pretrain_B2A":
       return [total_loss, tf.concat(sharded_logits_A, 0)]
-    else:
+    elif train_mode == "dual":
       return [total_loss, tf.concat(sharded_logits_B, 0), tf.concat(sharded_logits_A, 0), 
                           tf.concat(sharded_logits_B_m, 0), tf.concat(sharded_logits_A_m, 0)]
-    
+    else:
+      raise ValueError("Unrecognized infer_mode:%s" % train_mode)
+
   model_output = input_fn_builder.cond_on_index(
       nth_model,
       index_tensor=features["problem_choice"],
@@ -576,10 +584,12 @@ def model_fn(model,
     targets_nonpadding_tokens = B_nonpadding_tokens
   elif train_mode == "pretrain_B2A":
     targets_nonpadding_tokens = A_nonpadding_tokens
-  else:
+  elif train_mode == "dual":
     targets_nonpadding_tokens = tf.maximum(A_nonpadding_tokens, B_nonpadding_tokens)
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, A_m_nonpadding_tokens)
     targets_nonpadding_tokens = tf.maximum(targets_nonpadding_tokens, B_m_nonpadding_tokens)
+  else:
+    raise ValueError("Unrecognized infer_mode:%s" % train_mode)
 
   max_nonpadding = tf.maximum(max_nonpadding_var, targets_nonpadding_tokens)
   with tf.control_dependencies([tf.assign(max_nonpadding_var, max_nonpadding)]):
