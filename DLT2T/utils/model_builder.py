@@ -645,10 +645,10 @@ def build_model_fn(model, **kwargs):
     del params
 
     if labels is not None:
-      if train_mode == "pretrain_B2A":
-        features["A"] = labels
-      elif train_mode == "pretrain_A2B":
-        features["B"] = labels
+    #  if FLAGS.train_mode == "pretrain_B2A":
+    #    features["A"] = labels
+    #  elif FLAGS.train_mode == "pretrain_A2B":
+    #    features["B"] = labels
     del labels
 
     return model_fn(model, features, mode, hparams, **kwargs)
