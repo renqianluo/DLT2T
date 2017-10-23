@@ -411,9 +411,9 @@ def beam_search(symbols_to_logits_fn,
     # 3. Recompute the contents of finished based on scores.
     topk_seq, topk_log_probs, topk_scores, topk_finished, states = grow_topk(
         i, alive_seq, alive_log_probs, states)
-    alive_seq, alive_log_probs, _ = grow_alive(
+    alive_seq, alive_log_probs, _, states = grow_alive(
         topk_seq, topk_scores, topk_log_probs, topk_finished, states)
-    finished_seq, finished_scores, finished_flags = grow_finished(
+    finished_seq, finished_scores, finished_flags, _ = grow_finished(
         finished_seq, finished_scores, finished_flags, topk_seq, topk_scores,
         topk_finished)
 
