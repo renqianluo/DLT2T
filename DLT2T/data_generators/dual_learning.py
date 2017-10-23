@@ -124,6 +124,7 @@ class DuallearningEnde(problem.Text2TextProblem):
       examples['A_m'] = examples['A_m'][:hparams.max_input_seq_length]
     '''
     if max_seq_length > 0:
+      print("######################## It is invoked!!", max_seq_length)
       examples['A'] = examples['A'][:max_seq_length]
       examples['B'] = examples['B'][:max_seq_length]
       examples['A_m'] = examples['A_m'][:max_seq_length]
