@@ -129,6 +129,9 @@ def model_fn(model,
     if mode == tf.estimator.ModeKeys.PREDICT:
       if infer_mode == "A2B":
         with tf.variable_scope("A2B"):
+          features["inputs"] = features.get("A", features["inputs"])
+          features["input_space_id"] = features.get("A_space_id", features["input_space_id"])
+          features["target_space_id"] = features.get("B_space_id", features["target_space_id"])
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -138,9 +141,9 @@ def model_fn(model,
               decode_length=decode_hp.extra_length)
       else:
         with tf.variable_scope("B2A"):
-          features["input_space_id"], features["target_space_id"] = features["target_space_id"], features["input_space_id"]
-          #features["input_space_id"] = tf.Print(features["input_space_id"], [features["input_space_id"]])
-          #features["target_space_id"] = tf.Print(features["target_space_id"], [features["target_space_id"]])
+          features["inputs"] = features.get("B", features["inputs"])
+          features["input_space_id"] = features.get("B_space_id", features["target_space_id"])
+          features["target_space_id"] = features.get("A_space_id", features["input_space_id"])
           return model_class.infer(
               features,
               beam_size=decode_hp.beam_size,
@@ -645,10 +648,7 @@ def build_model_fn(model, **kwargs):
     del params
 
     #if labels is not None:
-    #  if FLAGS.train_mode == "pretrain_B2A":
-    #    features["A"] = labels
-    #  elif FLAGS.train_mode == "pretrain_A2B":
-    #    features["B"] = labels
+    #  features["targets"] = labels
     del labels
 
     return model_fn(model, features, mode, hparams, **kwargs)
