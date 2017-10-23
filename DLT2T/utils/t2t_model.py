@@ -522,7 +522,6 @@ class T2TModel(object):
           training_loss *= self._problem_hparams.loss_multiplier
         else:
           training_loss[0] *= self._problem_hparams.loss_multiplier
-          training_loss[1] *= self._problem_hparams.loss_multiplier
       else:
         # Take body outputs for the last position only, and targets too.
         # TODO(lukaszkaiser): warning, this doesn't work for all modalities!

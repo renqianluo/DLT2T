@@ -138,9 +138,9 @@ def model_fn(model,
               decode_length=decode_hp.extra_length)
       else:
         with tf.variable_scope("B2A"):
-          features["input_space_id"], features["target_space_id"] = features["target_space_id"], features["input_space_id"]
-          features["input_space_id"] = [problem.SpaceID.EN_TOK]
-          features["target_space_id"] = [problem.SpaceID.DE_TOK]
+          #features["input_space_id"], features["target_space_id"] = features["target_space_id"], features["input_space_id"]
+          #features["input_space_id"] = [problem.SpaceID.EN_TOK]
+          #features["target_space_id"] = [problem.SpaceID.DE_TOK]
           features["input_space_id"] = tf.Print(features["input_space_id"], [features["input_space_id"]])
           features["target_space_id"] = tf.Print(features["target_space_id"], [features["target_space_id"]])
           return model_class.infer(
