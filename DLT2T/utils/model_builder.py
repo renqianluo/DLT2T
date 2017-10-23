@@ -167,14 +167,8 @@ def model_fn(model,
             
       elif train_mode == "pretrain_B2A":
         with tf.variable_scope("B2A"):
-          features["A"] = tf.Print(features["A"], [features["A"]])
-          features["B"] = tf.Print(features["B"], [features["B"]])
-          features["A_m"] = tf.Print(features["A_m"], [features["A_m"]])
-          features["B_m"] = tf.Print(features["B_m"], [features["B_m"]])
-          features["A_hat"] = tf.Print(features["A_hat"], [features["A_hat"]])
-          features["B_hat"] = tf.Print(features["B_hat"], [features["B_hat"]])
-          features["A_score"] = tf.Print(features["A_score"], [features["A_score"]])
-          features["B_score"] = tf.Print(features["B_score"], [features["B_score"]])
+          features["A"] = tf.Print(features["A"], [tf.shape(features["A"])])
+          features["B"] = tf.Print(features["B"], [tf.shape(features["B"])])
           features["inputs"], features["targets"] = features["B"], features["A"]
           features["input_space_id"], features["target_space_id"] = features["B_space_id"], features["A_space_id"]
           sharded_logits_A, losses_dict_A = model_class.model_fn(
